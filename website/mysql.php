@@ -9,10 +9,7 @@ if ($local) {
     $password = "";
 } else {
     // bats.li AHK Database Connection
-    $host = "10.35.46.239:3306";
-    $db = "k144817_ahk";
-    $user = "k144817_ahk";
-    $password = "Diu34k^5";
+    // :)
 }
 
     try {
