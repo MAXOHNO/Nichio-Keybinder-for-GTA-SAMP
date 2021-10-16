@@ -1,0 +1,2 @@
+RewriteEngine On
+RewriteRule ^(.*)/(.*)/(.*)$ api.php?email=$1&password=$2&$3 [NC,QSA]
