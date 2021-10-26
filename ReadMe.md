@@ -20,16 +20,16 @@ Visit the Wiki at the top for more help on using the Keybinder
 To setup your keybinder visit the Account page on Nichio.de
 ### Hotkeys
 
-F2: /carkey
-F3: /carlock
-F4: /motor
-F12: Disable / Enable Keybinder
-X: /handystatus <an/aus>
-Y: Multifunktionstaste
-.: /nimmspice
-,: /nimmdrogen
-STRG + R: /frespawn
-^: /pickwaffe
+F2: /carkey  
+F3: /carlock  
+F4: /motor  
+F12: Disable / Enable Keybinder  
+X: /handystatus <an/aus>  
+Y: Multifunktionstaste  
+.: /nimmspice  
+,: /nimmdrogen  
+STRG + R: /frespawn  
+^: /pickwaffe  
 
 ### Commands
 /autohp: Disable/Enable HP Updater in Chat  
