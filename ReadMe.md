@@ -79,11 +79,11 @@ Nichio Chat
 To use the API you must use a valid account, then follow in this format  
 `https://nichio.de/api/my@email.com/my_password123/`
 note: you need to submit your password hashed in MD5 This will return a JSON containing the key "login" and whether the login was successfuly or not (true or false).   
-![image](https://user-images.githubusercontent.com/31670615/138897501-147f8095-bf1d-4bc7-9c39-ac8c497c9801.png)
+![image](https://user-images.githubusercontent.com/31670615/138897501-147f8095-bf1d-4bc7-9c39-ac8c497c9801.png)  
 To make more use out of the API you for example request who is online by visiting this URL  
 `https://nichio.de/api/my@email.com/my_password123/request=getOnline`
 This will return a JSON containing the key getOnline containing the Value of all the users who are online seperated by a &.  
-![image](https://user-images.githubusercontent.com/31670615/138897534-74d6c3c3-da01-43e7-9a81-b63cbb856537.png)
+![image](https://user-images.githubusercontent.com/31670615/138897534-74d6c3c3-da01-43e7-9a81-b63cbb856537.png)  
 
 ### MySQL Setup
 
