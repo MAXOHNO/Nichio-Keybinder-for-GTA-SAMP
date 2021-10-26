@@ -78,7 +78,7 @@ Nichio Chat
 (the URL used in the examples will be "nichio.de", however, if you host it yourself you need to replace it with your own and change it in the script)  
 To use the API you must use a valid account, then follow in this format  
 `https://nichio.de/api/my@email.com/my_password123/`
-note: you need to submit your password hashed in MD5 This will return a JSON containing the key "login" and whether the login was successfuly or not (true or false). 
+note: you need to submit your password hashed in MD5 This will return a JSON containing the key "login" and whether the login was successfuly or not (true or false).   
 ![image](https://user-images.githubusercontent.com/31670615/138897501-147f8095-bf1d-4bc7-9c39-ac8c497c9801.png)
 To make more use out of the API you for example request who is online by visiting this URL  
 `https://nichio.de/api/my@email.com/my_password123/request=getOnline`
