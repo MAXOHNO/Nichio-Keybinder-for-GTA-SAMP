@@ -7,6 +7,8 @@
 	global SAMP_API_PATH := FolderPath "\Open-SAMP-API.dll"
 	
 	FileCreateDir, %FolderPath%
+	
+	;_getCMDbyString("Tippe /Gangwaffen zum ausrüsten")
 
 	; Nichio Ordner wird unter %Appdata% erstellt, wenn nicht da ist keine settings.ini, und autoupdate broke
 	If !FileExist(FolderPath) {
@@ -20,7 +22,7 @@
 	if !FileExist(SAMP_API_PATH) {
 		api_url = http://nichio.de/dl/Open-SAMP-API.dll
 		api_name = %SAMP_API_PATH%
-		_download_to_file(api_url, api_name)
+		;_download_to_file(api_url, api_name) // not used anymore
 	}
 	
 	I_Icon = %FolderPath%\icon.ico
@@ -32,7 +34,7 @@
 	Menu, Tray, Icon, %I_Icon%
 	
 	#include JSON.ahk
-	#include API.ahk
+	#include DAPE-API.ahk
 	
 ; ######################### IniRead: InGame #########################
 	IniRead, PLAYER_USERNAME, %SettingsPath%, InGame, Username
@@ -55,9 +57,24 @@
 	global cYellow = "{FFD700}"
 	global cOrange = "{FFA500}"
 	global cLime = "{00FF00}"
+	
+; #######
+
+	global fraktionen := []
+	fraktionen[3] := Object("NAME", "Aztecas", "SKINS", [114, 115, 116, 156, 173, 174,175, 176, 177], "COLOR", 0x00FFCC, "COLOR2", "{00FFCC}", "GANGZONE",0x90FFEE00)
+	fraktionen[1] := Object("NAME", "Grove Street", "SKINS", [65, 86, 105, 106, 107,149, 269, 270, 271], "COLOR", 0x008000, "COLOR2", "{008000}", "GANGZONE",0x9028EA00)
+	fraktionen[4] := Object("NAME", "Yakuza", "SKINS", [122, 123, 169, 186,203, 204, 228], "COLOR", 0xCC9900, "COLOR2", "{CC9900}", "GANGZONE",0x90A0A0A0)
+	fraktionen[7] := Object("NAME", "Triaden", "SKINS", [111, 117, 118, 120, 208, 210,224, 294], "COLOR", 0xE13759, "COLOR2", "{E13759}", "GANGZONE", 0x90FF2D00)
+	fraktionen[6] := Object("NAME", "Vagos", "SKINS", [108, 109, 110, 292,298], "COLOR", 0xFFFF00, "COLOR2", "{FFFF00}", "GANGZONE", 0x9000FFFF)
+
+	fraktionen[2] := Object("NAME", "Ballas", "SKINS", [13, 102, 103, 104,195, 293], "COLOR", 0xCC66FF, "COLOR2", "{CC66FF}", "GANGZONE", 0x90B10489)
+	fraktionen[5] := Object("NAME", "LCN", "SKINS", [98, 113, 124, 125, 126, 127, 263, 272], "COLOR", 0xBEB9C8, "COLOR2", "{BEB9C8}", "GANGZONE",0x80000066)
+	fraktionen[8] := Object("NAME", "CK", "SKINS", [46, 184, 185, 223, 273],"COLOR", 0xD88585, "COLOR2", "{D88585}", "GANGZONE", 0x900059AE) 
+	fraktionen[9] := Object("NAME", "LSPD", "SKINS", [265, 266, 267, 280, 281, 282, 283, 284, 285, 286, 288, 300, 301, 302, 306, 307, 309, 310, 311], "COLOR", 0x6495ED, "COLOR2", "{6495ED}") 
+	fraktionen[10] := Object("NAME", "NineDemons", "SKINS", [247, 248, 100, 261, 291, 158, 162, 199, 200, 201, 146], "COLOR", 0x4E9C00, "COLOR2", "{4E9C00}")
 
 ; ######################### Version Settings #########################
-	global KEYBINDER_VERSION = "3.3.9"
+	global KEYBINDER_VERSION = "3.4.8"
 	global KEYBINDER_GENERATION = ""
 	global KEYBINDER_CLIENTNAME = "Nichio Keybinder"
 	global KEYBINDER_CLIENTVERSION = KEYBINDER_GENERATION KEYBINDER_VERSION
@@ -69,9 +86,9 @@
 ; ######################### Prefix & Colors #########################
 	global KEYBINDER_PREFIX = cGray "["  cOrange "Nichio" cBlue "" cGray "] " cWhite
 	global KEYBINDER_CHAT = cOrange
-	global KEYBINDER_PREFIXERROR = cWhite ">> " cGray "["  cOrange "Nichio" cBlue "" cGray "] " cGray "[" cRed "FEHLER" cGray "]: " cWhite
-	global KEYBINDER_PREFIXGREEN = cWhite ">> " cGray "["  cOrange "Nichio" cBlue "" cGray "] " cGreen
-	global KEYBINDER_PREFIXRED = cWhite ">> " cGray "["  cOrange "Nichio" cBlue "" cGray "] " cRed
+	global KEYBINDER_PREFIXERROR = cWhite "" cGray "["  cOrange "Nichio" cBlue "" cGray "] " cGray "[" cRed "FEHLER" cGray "]: " cWhite
+	global KEYBINDER_PREFIXGREEN = cWhite "" cGray "["  cOrange "Nichio" cBlue "" cGray "] " cGreen
+	global KEYBINDER_PREFIXRED = cWhite "" cGray "["  cOrange "Nichio" cBlue "" cGray "] " cRed
 	
 ; ######################### State #########################	
 	global KEYBINDER_STATE := 1
@@ -82,8 +99,9 @@
 	global HANDY_STATE = 1
 	global Laufscript = 1
 	global autolotto := 1
-	
+	global veris := 0
 	global WCoding = 0
+	global AutoAnwalt = 0
 	
 	Time := A_NowUTC
 	EnvSub, Time, 19700101000000, Seconds	; bro kp was hier passiert akzeptier es einfach für unix timestamp lol					
@@ -99,7 +117,7 @@
 	SetTimer, KeksBot, 500
 	
 	SetTimer, ChatListener, 250
-	SetTimer, ChatResponder, 100
+	SetTimer, ChatResponder, 50
 	SetTimer, PositionListener, 250
 	SetTimer, BotLogic, 1000
 	
@@ -112,7 +130,7 @@
 ; ########################## GUI 1 ##########################
 	; Titel & GUI
 		Gui, 1: Show, h500 w800, %KEYBINDER_CLIENTNAME% | Version: %KEYBINDER_CLIENTVERSION% 
-		Gui, 1: Color, 212121
+		Gui, 1: Color, 202020
 
 	; Font 1
 		Gui, 1: font, c00FF00
@@ -338,7 +356,7 @@
 			GuiControl ,, 2, %c_k%
 			GuiControl ,, 3, %c_ps%
 			GuiControl ,, 4, %c_ddp%
-			GuiControl ,, 5, "wieso_decompilsted_du_mein_keybinder_lol"
+			GuiControl ,, 5, %c_js%
 			GuiControl ,, 6, %c_ns%
 			GuiControl ,, KillSpruch, %c_ks%
 			GuiControl ,, GangSpruch, %c_gs%
@@ -356,6 +374,9 @@
 
 	skips_wcodes = 0
 	skips_detektiv = 0
+	skips_anwalt = 0
+	
+	previous_first_chatline := ""
 	
 	BotLogic:
 	if (KEYBINDER_STATE == 1) {
@@ -389,11 +410,32 @@
 			skips_detektiv--
 		}
 		
+		if (AutoAnwalt == 1) {
+			if (skips_anwalt <= 0) {
+				SendChat("/gefangene")
+				sleep, 250
+				
+				GetChatLine(0, line0)
+				GetChatLine(1, line1)
+				GetChatLine(2, line2)
+				GetChatLine(3, line3)
+				
+				_anwalt(line0)
+				_anwalt(line1)
+				_anwalt(line2)
+				_anwalt(line3)
+				
+				Random, randAnwalt, 3, 7
+				skips_anwalt := randAnwalt * tickrate
+			}
+			skips_anwalt--
+		}
+		
 		if (Locing == 1) {
-			GetCityName(p_city, 500)
-			GetZoneName(p_zone, 500)
-			location_string = %p_zone%
-			ShowGameText(location_string, 1000, 1)
+			;GetCityName(p_city, 500)
+			;GetZoneName(p_zone, 500)
+			;location_string = %p_zone%
+			;ShowGameText(location_string, 1000, 1)
 		}
 		
 	}
@@ -404,7 +446,7 @@
 		GetChatLine(0, ChatLine)
 		GetChatLine(1, KillLine)
 		GetChatLine(2, Gangkillline)
-		GetPlayerName(pname, 100)
+		pname := getUsername()
 		
 		response_str := ""
 		
@@ -423,14 +465,13 @@
 			Sleep, 500
 		}
 		
-		If InStr(Gangkillline, "Du hast ein Verbrechen begangen! (Mord an einem Gangmitglied) Reporter: Polizeizentrale") {
+		If (InStr(Gangkillline, "Du hast ein Verbrechen begangen! (Mord an einem Gangmitglied) Reporter: Polizeizentrale")){
 			IniRead, PLAYER_KILLS, %SettingsPath%, InGame, Kills
 			IniRead, MESSAGE_GANGSPRUCH, %SettingsPath%, InGame, Gangspruch
 			PLAYER_KILLS++
 			SendChat(MESSAGE_GANGSPRUCH " | Nr. " PLAYER_KILLS)
 			ShowGameText("+1 G-Kill", 3000, 5)
 
-			; Call API to +1 Kills
 			; Call API to +1 Kills
 			response_str = request=setKills&kills=%PLAYER_KILLS%
 			_callAPI(response_str)
@@ -439,16 +480,28 @@
 			Sleep, 500
 		}
 		
+		if (RegExMatch(ChatLine, "->GANGFIGHTKILL<- " pname " Gangfightkill an (.*) (3P an (.*)", gf)) {
+			IniRead, PLAYER_KILLS, %SettingsPath%, InGame, Kills
+			IniRead, MESSAGE_GANGSPRUCH, %SettingsPath%, InGame, Gangspruch
+			PLAYER_KILLS++
+			SendChat(MESSAGE_GANGSPRUCH " | Nr. " PLAYER_KILLS)
+			;ShowGameText("+1 G-Kill", 3000, 5)
+
+			; Call API to +1 Kills
+			response_str = request=setKills&kills=%PLAYER_KILLS%
+			_callAPI(response_str)
+			Sleep, 500
+		}
+		
 		if InStr(ChatLine, "Sie stehen an einer Zollstation, der Zollübergang kostet $5.000! Befehl: /Zoll") {
+			msg(KEYBINDER_PREFIX "Es wurde automatisch Zoll bezahlt.")
 			SendChat("/zoll")
-			Sleep, 5000
 		}
 		
 		if InStr(ChatLine, "Kaufe dir mit /Lotto ein Lottoticket für $10.000 und versuche dein Glück!") {
 			if (autolotto == 1) {
 				Random, LottoNummer, 1, 100
 				SendChat("/lotto " LottoNummer)
-				AddChatMessage("autolotto")
 				
 				response_str := response_str "useLotto=1" "&"
 				msg(KEYBINDER_PREFIX "Es wurde automatisch ein Lotto-Ticket gekauft.")
@@ -456,11 +509,33 @@
 			}
 		}
 		
+		if (InStr(ChatLine, "Tippe nun '/Accept Anwalt' um die Befreiung anzunehmen.")) {
+			SendChat("/accept anwalt")
+		}
+		
+		if (InStr(ChatLine, "ist explodiert! Die Reperaturkosten in Höhe von $1.500 musst du manuell begleichen mit /Fahrzeugreparieren.")) {
+			SendChat("/fahrzeugreparieren")
+		}
+		
 		if (RegexMatch(ChatLine, "Spieler " pname " hat sich für (.*) Waffenteile (.*)", usage)) {
 			
+			previous_first_chatline := ChatLine
 			msg(KEYBINDER_PREFIX "Du hast " usage1 " Waffenteile benutzt.")
 			response_str := response_str "useWT=" usage1 "&"
 			
+		}
+		
+		if (RegexMatch(ChatLine, ">> (.*) hat den Verbrecher (.*) eingesperrt. <<", anwalt)) {
+			;msgbox % anwalt2
+		}
+		
+		if (RegexMatch(KillLine, "Spieler " pname " hat sich für (.*) Waffenteile (.*)", usage)) {
+			
+			if (!InStr(KillLine, previous_first_chatline)) {
+				msg(KEYBINDER_PREFIX "Du hast " usage1 " Waffenteile benutzt.")
+				response_str := response_str "useWT=" usage1 "&"
+			}
+
 		}
 		
 		if (InStr(ChatLine, "* " pname " hat sich nen Joint gedreht.")) {
@@ -468,7 +543,7 @@
 			response_str := response_str "useDrogen=1" "&"
 		}
 		
-		if (ChatLine == "* " pname " nimmt Spice zu sich.") {
+		if (InStr(ChatLine, "* " pname " nimmt Spice zu sich.")) {
 			msg(KEYBINDER_PREFIX "Du hast ein Spice genommen.")
 			response_str := response_str "useSpice=1" "&"
 		}
@@ -486,6 +561,9 @@
 	
 	HPUpdater:
 	if (KEYBINDER_STATE == 1 && togglehp == 1) {
+		
+		
+		
 		newhp := GetPlayerHealth()
 		newarmor := GetPlayerArmor()
 		newhealth := GetPlayerHealth() + GetPlayerArmor()
@@ -497,7 +575,11 @@
 					
 					if (dmg != 2139094940 && dmg != -2139094940 && dmg != "") {
 						if (dmg < 0) {
-							msg(KEYBINDER_PREFIX cRed "HP: " cWhite dmg getHealthloseWeapon(dmg) )
+							cHPColor := cRed
+							if (GetPlayerArmor() > 0) {
+								cHPColor := cBlue
+							}
+							msg(KEYBINDER_PREFIX cHPColor "HP: " cWhite dmg getHealthloseWeapon(dmg) )
 						}
 					}
 				}
@@ -551,13 +633,19 @@
 	return
 	
 	PositionListener:
-	if (isKeybinderAvailable()) {
+	if (isKeybinderAvailable(true)) {
 		if(IsPlayerInRange3D(-1857.0846,-1618.0605,21.4436, 5)) {
 			SendChat("/paketentladen")
 			ShowGameText("+"  (wdealerpakete * 100) " Waffenteile!", 3000, 3)
 			Sleep, 10000
 		} else if(IsPlayerInRange3D(2348, -2302, 14, 2)) {
 			SendChat("/paketeinladen " wdealerpakete)
+			Sleep, 3000
+		}  else if (IsPlayerInRange3D(-38.960495, 57.272049, 4.059539, 2)) {
+			SendChat("/samenpaketeinladen 5")
+			Sleep, 3000
+		} else if (IsPlayerInRange3D(-309.866852, -2119.856201, 29.057947, 2)) {
+			SendChat("/samenpaketentladen")
 			Sleep, 3000
 		}
 		
@@ -583,7 +671,7 @@
 			
 			CHAT_TIMESTAMP := response.getNewMSGTimestamp
 		
-			AddChatMessage(cOrange "** Nichio " cWhite response.getNewMSGAuthor cGray ": " cWhite response.getNewMSG cOrange " **")
+			AddChatMessage(cOrange "** Nichio " cGray response.getNewMSGAuthor cWhite ": " cWhite response.getNewMSG cOrange " **")
 		}
 		
 	}
@@ -650,7 +738,7 @@
 ; ########################## CUSTOM COMMANDS ######################
 
 Enter::
-		if (!isKeybinderAvailable()) {
+		if (!isKeybinderAvailable(true)) {
 			SendInput, {enter}
 			return
 		}
@@ -662,11 +750,7 @@ Enter::
 		clip := ClipboardAll
 		Clipboard := ""
 		SendInput, {Right}a{BackSpace}^a^c ;^A{Backspace}
-		Loop, 20 {
-			sleep, 5
-			if (Clipboard != "")
-				break
-		}
+		ClipWait, 0.1
 		chatText := Clipboard
 		Clipboard := clip
 
@@ -691,12 +775,39 @@ Enter::
 ; ===== "Callback" for evaluation of commands =====
 
 CMDyoyo(params := "") {
-	AddChatMessage("sex so viel sex")
+	Loop, 20 {
+		msg("")
+	}
+	return true
+}
+
+CMDunlockfps(params := "") {
+	if (params == "true") {
+		unlockfps(true)
+	} else if (params == "false") {
+		unlockfps(false)
+	}
+	
+	return true
+}
+
+CMDgetObject(params := "") {
+	msg(getClosestObjectModel())
+	
 	return true
 }
 
 CMDtr(params := "") {
 	AddChatMessage(KEYBINDER_PREFIX "= ")
+	return true
+}
+
+CMDautoanwalt(params := "") {
+	AutoAnwalt := !AutoAnwalt
+	if (AutoAnwalt == 1) 
+		msg(KEYBINDER_PREFIX "Auto Anwalt wurde aktiviert.")
+	else
+		msg(KEYBINDER_PREFIX "Auto-Anwalt wurde deaktiviert.")
 	return true
 }
 
@@ -735,7 +846,7 @@ CMDhotkeys(params := "") {
 	AddChatmessage(cRed ".: " cBlue "/nimmspice" cGray " | | " cRed ",: " cBlue "/nimmdrogen" cGray " | | " cRed "F12: " cBlue "Keybinder An/Aus")
 	AddChatMessage(cRed "X: " cBlue "Handy An/Aus" cGray " | | " cRed "Y: " cBlue "Multifunktionstaste" cGray " | | " cRed "+: " cBlue "Config auslesen" )
 	AddChatMessage(cRed "STRG K: " cBlue "KeksBot" cGray " | | " cRed "^: " cBlue "/pickwaffe" cGray " | | " cRed "Shift: " cBlue "Laufscript" )
-	AddChatMessage(cRed "STRG R: " cBlue "/frespawn" cGray " | | " cRed "-: " cBlue "-" cGray " | | " cRed "-: " cBlue "-" )
+	AddChatMessage(cRed "STRG R: " cBlue "/frespawn" cGray " | | " cRed "F9: " cBlue "Print Fraktions Users" cGray " | | " cRed "-: " cBlue "-" )
 	AddChatMessage(cRed "==========================================" )
 	return true
 }
@@ -778,7 +889,7 @@ CMDonline(params := "") {
 	{
 		
 		if (A_LoopField != "") {
-			AddChatMessage(KEYBINDER_PREFIX "ID: " GetPlayerIDByName(A_LoopField) " - " A_LoopField)
+			AddChatMessage(KEYBINDER_PREFIX "ID: " GetPlayerID(A_LoopField) " - " A_LoopField)
 		}
 		
 	}
@@ -850,7 +961,7 @@ CMDchangelog(params := "") {
 }
 
 CMDja(params := "") {
-	GetPlayerName(pname, 100)
+	pname := GetUsername()
 	SendChat("/abnehmen")
 	IniRead, spruch, %SettingsPath%, InGame, JaSpruch
 	if (spruch == "ERROR") {
@@ -863,7 +974,7 @@ CMDja(params := "") {
 }
 
 CMDnein(params := "") {
-	GetPlayerName(pname, 100)
+	pname := getUsername()
 	SendChat("/abnehmen")
 	SendChat("Hier ist die Mailbox von " pname ".")
 	SendChat("Du hast 15 Sekunden Zeit mir deine Nachricht mitzuteilen.")
@@ -873,7 +984,7 @@ CMDnein(params := "") {
 }
 
 CMDauf(params := "") {
-	GetPlayerName(pname, 100)
+	pname := getUsername()
 	IniRead, spruch, %SettingsPath%, InGame, NeinSpruch
 	if (spruch == "ERROR") {
 		SendChat("Ich wünsche ihnen noch einen angenehmen Tag.")
@@ -902,7 +1013,9 @@ CMDinv(params := "") {
 }
 
 CMDskinid(params := "") {
-	AddChatMessage(KEYBINDER_PREFIX "Skin ID: " GetPlayerSkinId() )
+	;AddChatMessage(KEYBINDER_PREFIX "Skin ID: " GetPlayerSkinId() )
+	;msg("negativ sir")
+	msg(getSkinID(1))
 	return true
 }
 
@@ -970,10 +1083,15 @@ CMDshow(params := "") {
 CMDsavepos(params := "") {
 	AddChatMessage(KEYBINDER_PREFIX "Deine Position " params " wurde gespeichert." )
 	
-	GetPlayerPosition(X, Y, Z)
+	;GetPlayerPos(X, Y, Z)
+	X := GetPlayerPos[1]
+	Y := GetPlayerPos[2]
+	Z := GetPlayerPos[3]
 	posstring = %X%, %Y%, %Z%
 	
-	IniWrite, %posstring%, savedpositions.ini, Position, %first%
+	msg(posstring)
+	
+	IniWrite, %posstring%, savedpositions.ini, Position, %params%
 	return true
 }
 
@@ -1066,48 +1184,127 @@ getSecondWord(string) {
 	} else {
 		AddChatMessage(KEYBINDER_PREFIXGREEN KEYBINDER_CLIENTNAME " Keybinder aktiviert.")
 		GuiControl,, STATE, KeyBinder: AN
+		
 		KEYBINDER_STATE := KEYBINDER_ONLINE
 	}
 	return
 	
+	global B := "{00C0FF}"
+	global W := "{FFFFFF}"
+	
 	F9::
-	; Deine Handy-Nummer lautet: 
-	SendChat("/elektromarkt")
-	Sleep, 100
-	SendInput, {down}{down}{down}{down}{enter}
+	if (isKeybinderAvailable()) {
+		;msg( getDialogID() )
+		;msg( setActiveWeaponSlot() )
+		
+		AddChatMessage(KEYBINDER_PREFIX "=======FRAKS=======")
+		maxid := getMaxPlayerID() + 1
+			
+			for i, element in fraktionen {
+				
+				loop %maxid% {
+				c_id := A_Index - 1
+				
+				; loop for each player
+				target_player_skinid := getSkinID(c_id)
+			
+				;msg(element["NAME"])
+				for j, skins in element["SKINS"] {
+						
+					if (element["SKINS"][j] == target_player_skinid) {
+						AddChatMessage(KEYBINDER_PREFIX element["COLOR2"] element["NAME"] cWhite ": " getPlayerName(c_id) " | " c_id)
+					}
+				
+					;msg(element["SKINS"][j])
+				}
+			
+			}
+			
+		}
+		
+		AddChatMessage(KEYBINDER_PREFIX "====================")
+		
+	}
 	return
 	
-#if IsChatOpen() == 0 && IsDialogOpen() == 0 && IsMenuOpen() == 0 && isKeybinderAvailable()
+	
+	F7::
+		;    printWurstObj()
+		;	 bumpVehicleX()
+		;	 bumpVehicleY()
+		if (!updateGangzones())
+			return
+
+		total := 0
+		arr := [0, 0, 0, 0, 0, 0, 0, 0]
+		for i, fGangZ in oGangzones {
+			for j, k in fraktionen {
+				if (fGangZ.COLOR1 == k.GANGZONE) {
+					arr[j]++
+					break
+				}
+			}
+
+			total := i
+		}
+
+		string := ""
+		for h, m in arr
+			string .= m "," h "`n"
+
+		Sort string, NR
+		AddChatMessage(KEYBINDER_PREFIX "=======GEBIETE=======")
+		Loop, Parse, string, `n
+		{
+			if (A_LoopField == "")
+				continue
+
+			var := StrSplit(A_LoopField, ",")
+			AddChatMessage(KEYBINDER_PREFIX  "" fraktionen[var[2]].NAME ": {FFFFFF}[" var[1] "/" total "]", fraktionen[var[2]].COLOR)
+			Sleep, 20
+		}
+
+		AddChatMessage(KEYBINDER_PREFIX "=====================", COLOR_GREEN)
+
+	return
+	
+	
+#if isChatOpen() == 0 && IsDialogOpen() == 0 && IsInMenu() == 0 && isKeybinderAvailable(true)
 	F2::	
-	if (isKeybinderAvailable()) {
+	if (isKeybinderAvailable(true)) {
 		SendChat("/carkey")
-		Sleep, 100
+		;Sleep, 100
+		;SendInput, {down 3}
+		;SendInput, {enter}
+		;Sleep, 200
+		;SendInput, {enter}
+		;Sleep, 100
+		;SendInput, {enter}
 	}
 	return
 
 	F3::
-	if (isKeybinderAvailable() ) {
+	if (isKeybinderAvailable(true) ) {
 		SendChat("/carlock")
-		Sleep, 100
 	}
 	return
 	
 	F4::
-	if (isKeybinderAvailable() ) {
+	if (isKeybinderAvailable(true) ) {
 		SendChat("/motor")
 		SendChat("/licht")
-		if (GetVehicleModelId() == 521 || GetVehicleModelId() = 522) {
+		if (GetVehicleModelId(getPlayerVehicleID(getID())) == 521 || GetVehicleModelId(getPlayerVehicleID(getID())) = 522) {
 			SendChat("/helm")
 		}
-		if (GetVehicleModelID() == 416) {
+		if (GetVehicleModelID(getPlayerVehicleID(getID())) == 416) {
 			SendChat("/flock")
 		}
-		Sleep, 550
+		Sleep, 250
 	}
 	return
 	
 	X::
-	if (isKeybinderAvailable() ) {
+	if (isKeybinderAvailable(true) ) {
 		if(HANDY_STATE == 1) {
 			SendChat("/handystatus aus")
 			HANDY_STATE = 0
@@ -1119,7 +1316,7 @@ getSecondWord(string) {
 	return
 	
 	#::
-	if (isKeybinderAvailable() ) {
+	if (isKeybinderAvailable(true) ) {
 		AddChatMessage(cRed "==============" cBlue " KeyBinder Guide " cRed "==============" )
 		AddChatMessage(cRed "/befehle: " cBlue "Befehle nachsehen" cGray " | | " cRed "/hotkeys: " cBlue "Hotkeys nachsehen" )
 		AddChatMessage(cRed "/changelog: " cBlue "Changelog nachsehen" cGray " | | " cRed "/config: " cBlue "Konfiguriere den Keybinder" )
@@ -1128,7 +1325,7 @@ getSecondWord(string) {
 	return
 	
 	+::
-	if (isKeybinderAvailable()) {
+	if (isKeybinderAvailable(true)) {
 		v := KEYBINDER_VERSION
 		IniRead, k, %SettingsPath%, InGame, Kills
 		IniRead, wt, %SettingsPath%, InGame, Waffendealerpakete
@@ -1147,125 +1344,134 @@ getSecondWord(string) {
 	}
 	return
 	
-	Y::
-	if (isKeybinderAvailable() ) {
-		if (IsPlayerInRange3D(-780.301636, 505.897461, 1371.742188, 2) || IsPlayerInRange3D(960.389648, -47.607685, 1001.117188, 1)) {
-			SendChat("/gangwaffen")
-			SendChat("/gheilen")
-		}   else if (IsPlayerInRange3D(-789.212891, 497.180267, 1371.742188, 2) || IsPlayerInRange3D(962.036377, -47.526665, 1001.117188, 1)) {
-			SendChat("/FSafebox")
-			; entnahme der drogen
-			Sleep, 100
-			SendInput, {enter}
-			Sleep, 100
-			SendInput, {down} {enter}
-			Sleep, 100
-			SendInput, 100 {enter}
-			Sleep, 100
-			
-			; entnahme des spice
-			SendInput, {down} {down} {down} {enter}
-			Sleep, 100
-			SendInput, {down} {enter}
-			Sleep, 100
-			SendInput, 100 {enter}
-			Sleep, 100
-			
-			; schließen der fsafebox
-			SendInput, {escape}
-			Sleep, 100
-			SendInput, {escape}
-			
-		} else if (IsPlayerInRange3D(-779.651245, 496.748901, 1371.749023, 2) || IsPlayerInRange3D(958.646362, -47.509190, 1001.117188, 1) ) {
-			SendChat("/waffenlager")
-			Sleep, 50
-			SendInput, {down}
-			Sleep, 50
-			SendInput, {enter}
-			Sleep, 50
-			SendInput, {down} {enter}
-			Sleep, 50
-			SendInput, {down}
-			Sleep, 50
-			SendInput, {down}
-			Sleep, 50
-			SendInput, {down}
-			Sleep, 50
-			SendInput, {down}
-			Sleep, 50
-			SendInput, {down}
-			Sleep, 50
-			SendInput, {enter}
-			Sleep, 50
-			SendInput, {escape}
-			Sleep, 50
-			SendInput, {escape}
-			Sleep, 50
-			SendInput, {escape}
-		} else if (IsPlayerInRange3D(918.880310,-1463.211670,2754.946045, 1)) {
-			SendChat("/stadthalle")
-		} else if(IsPlayerInRange3D(1339.575806,-1805.219604,13.934590, 2)) {
-			SendChat("/illegalejobs")
-		} else if(IsPlayerInRange3D(311.942413,-165.937866,1000.200989, 2)) {
-			SendChat("/wmenu")
-		} else if (IsPlayerInRange3D(379.6455,1463.2275,1080.1875, 2)) {
-			SendChat("/hausupgrade")
-			Sleep, 100
-			SendInput, {enter}
-			Sleep, 100
-			SendInput, {enter}
-			Sleep, 100
-			SendInput, {enter}
-			Sleep, 100
-			SendInput, 50
-			Sleep, 100
-			SendInput, {enter}
-			Sleep, 100
-		} else if (IsPlayerInRange3D(2374.9397,-1127.2277,1050.8750, 2)) {
-			SendChat("/hausupgrade")
-			Sleep, 100
-			SendInput, {enter}
-			Sleep, 100
-			SendInput, {enter}
-			Sleep, 100
-			SendInput, {enter}
-			Sleep, 100
-			SendInput, 50
-			Sleep, 100
-			SendInput, {enter}
-			Sleep, 100
-		; Cali Kartell, Triaden
-		} else if (IsPlayerInRange3D(2349.243896, -1246.729004, 22.608610, 2)) {
-			SendChat("/safebox waffenteile reinlegen " (wdealerpakete * 100) )
-		} else if (IsPlayerInRange3D(1506.614746, -1849.940186, 13.587630, 5)) {
-			SendChat("/illegalejobs")
-		} else if (IsPlayerInRange3D(1228.283447, -1423.370850, 13.554800, 2)) {
-			SendChat("/elektromarkt")
-		} else if (IsPlayerInRange3D(942.981018, -50.991997, 1001.124573, 1)) {
-			SendChat("/gangitem")
-		} else if (IsPlayerInRange3D(-2726.768066, -319.328033, 7.187500, 2)) {
-			SendChat("/automat")
-		}
+	NumPad9::
+	if (isKeybinderAvailable()) {
+		;blockDialog()
+		;SendChat("/Waffenlager")
+		;sendDialogResponseWait(1230, true, 1)
+		;sendDialogResponseWait(1233, true, 5)
+		;sendDialogResponseWait(1233, true, 4)
+		;sendDialogResponseWait(1233, true, 1)
+		;sendDialogResponseWait(1233, false, 1)
+		;sendDialogResponseWait(1230, false, 1)
+		;closeDialog()
+		;msg("Erfolgreich M4, Shotgun & Weste gebaut")
 	}
 	return
 	
-#if IsChatOpen() == 0 && IsDialogOpen() == 0 && IsMenuOpen() == 0 && isKeybinderAvailable()
+	Y::
+	if (isKeybinderAvailable(false) ) {
+		
+		lbl := getNearestLabel()
+		myPos := getPlayerPos()
+	
+		if (getDistance([lbl.XPOS, lbl.YPOS, lbl.ZPOS], myPos) < 5.0) {
+			
+			if (!RegExMatch(lbl.TEXT, "(.*)/(\S+)", command))
+				return		
+			
+			if (InStr(lbl.TEXT, "/waffenlager")) {
+				SendChat("/Waffenlager")
+				sendDialogResponseWait(1230, true, 1)
+				sendDialogResponseWait(1233, true, 5)
+				sendDialogResponseWait(1233, true, 4)
+				sendDialogResponseWait(1233, true, 1)
+				sendDialogResponseWait(1233, false, 1)
+				sendDialogResponseWait(1230, false, 1)
+				closeDialog()
+			} else if (InStr(lbl.TEXT, "/fsafebox")) {
+				SendChat("/FSafebox")
+				; drogen
+				sendDialogResponseWait(1379, true, 0)
+				sendDialogResponseWait(1380, true, 1)
+				sendDialogResponseWait(1382, true, 0, "200")
+				; spice
+				sendDialogResponseWait(1379, true, 3)
+				sendDialogResponseWait(1380, true, 1)
+				sendDialogResponseWait(1382, true, 0, "100")
+				sendDialogResponseWait(1379, false, 0)
+				
+				; schließen
+				closeDialog()
+			} else {
+				_getCMDbyString(lbl.TEXT)
+			}
+			
+		}
+		
+		;if (IsPlayerInRange3D(-780.301636, 505.897461, 1371.742188, 2) || IsPlayerInRange3D(960.441040, -47.771484, 1001.717163, 1) || IsPlayerInRange3D(508.337006, -84.919502, 999.560913, 1)) {
+			;SendChat("/gangwaffen")
+			;SendChat("/gheilen")
+		;}   else if (IsPlayerInRange3D(-789.212891, 497.180267, 1371.742188, 2) || IsPlayerInRange3D(962.036377, -47.526665, 1001.117188, 1)) {
+			
+			
+		;} else if (IsPlayerInRange3D(-779.651245, 496.748901, 1371.749023, 2) || IsPlayerInRange3D(958.646362, -47.509190, 1001.117188, 1) || IsPlayerInRange3D(505.660675, -81.086975, 999.560913, 1) || IsPlayerInRange3D(-38.989613, 56.992317, 4.055900, 1) ) {
+			
+			; hier gehts weiter
+		;} else if (IsPlayerInRange3D(918.880310,-1463.211670,2754.946045, 1)) {
+			;SendChat("/stadthalle")
+		;} else if(IsPlayerInRange3D(1339.575806,-1805.219604,13.934590, 2)) {
+			;SendChat("/illegalejobs")
+		;} else if(IsPlayerInRange3D(311.942413,-165.937866,1000.200989, 2)) {
+			;SendChat("/wmenu")
+		;} else if (IsPlayerInRange3D(379.6455,1463.2275,1080.1875, 2)) {
+			;SendChat("/hausupgrade")
+			;Sleep, 100
+			;SendInput, {enter}
+			;Sleep, 100
+			;SendInput, {enter}
+			;Sleep, 100
+			;SendInput, {enter}
+			;Sleep, 100
+			;SendInput, 50
+			;Sleep, 100
+			;SendInput, {enter}
+			;Sleep, 100
+		;} else if (IsPlayerInRange3D(2374.9397,-1127.2277,1050.8750, 2)) {
+			;SendChat("/hausupgrade")
+			;Sleep, 100
+			;SendInput, {enter}
+			;Sleep, 100
+			;SendInput, {enter}
+			;Sleep, 100
+			;SendInput, {enter}
+			;Sleep, 100
+			;SendInput, 50
+			;Sleep, 100
+			;SendInput, {enter}
+			;Sleep, 100
+		; Cali Kartell, Triaden
+		;} else if (IsPlayerInRange3D(2349.243896, -1246.729004, 22.608610, 2)) {
+			;SendChat("/safebox waffenteile reinlegen " (wdealerpakete * 100) )
+		;} else if (IsPlayerInRange3D(1506.614746, -1849.940186, 13.587630, 5)) {
+			;SendChat("/illegalejobs")
+		;} else if (IsPlayerInRange3D(1228.283447, -1423.370850, 13.554800, 2)) {
+			;SendChat("/elektromarkt")
+		;} else if (IsPlayerInRange3D(942.981018, -50.991997, 1001.124573, 1)) {
+			;SendChat("/gangitem")
+		;} else if (IsPlayerInRange3D(-2726.768066, -319.328033, 7.187500, 2)) {
+			;SendChat("/automat")
+		;}
+	}
+	return
+	
+#if IsChatOpen() == 0 && IsDialogOpen() == 0 && IsInMenu() == 0 && isKeybinderAvailable()
 ; ########################## Custom Keybinds ##########################
 
 	,::
-	if (isKeybinderAvailable()) {
+	if (isKeybinderAvailable(true)) {
 		SendChat("/nimmdrogen")
 	}	
 	return
 	
 	.::
-	if (isKeybinderAvailable()) {
+	if (isKeybinderAvailable(true)) {
 		SendChat("/nimmspice")
 	}	
 	return
 
 	^K::
-	if (isKeybinderAvailable() ) {
+	if (isKeybinderAvailable(true) ) {
 		if(KEKSBOT_STATE == 0) {
 			AddChatMessage(KEYBINDER_PREFIX "KeksBot aktiviert.")
 			KEKSBOT_STATE = 1
@@ -1277,13 +1483,13 @@ getSecondWord(string) {
 	return
 	
 	^R::
-	if (isKeybinderAvailable() ) {
+	if (isKeybinderAvailable(true) ) {
 		SendChat("/frespawn")
 	}
 	return
 
 	^::
-	if (isKeybinderAvailable() ) {
+	if (isKeybinderAvailable(true) ) {
 		IniRead, p_spruch, %SettingsPath%, InGame, Pickspruch
 		SendChat("/pickwaffe")
 		SendChat(p_spruch)
@@ -1291,24 +1497,24 @@ getSecondWord(string) {
 	return
 	
 	~Shift::
-	if(IsChatOpen() == 1 || IsDialogOpen() == 1 || Laufscript == 0) {
+	if(IsChatOpen() || IsDialogOpen() 1 || Laufscript == 0 || IsInMenu()) {
 		return
 	}
-	Sleep 10
+	Sleep 1
 	while GetKeyState("Shift", "P") {
 		Send {Shift down}
-		Sleep 10
+		Sleep 1
 		Send {Shift up}
-		Sleep 10
+		Sleep 1
 	}
 	return 
 	
 ; ########################## HOTSTRINGS ##########################
-#if IsChatOpen() == 1 && IsDialogOpen() == 0 && IsMenuOpen() == 0 && isKeybinderAvailable()
+#if IsChatOpen() == 1 && IsDialogOpen() == 0 && IsInMenu() == 0 && isKeybinderAvailable(true)
 	
 	getHealthloseWeapon(lost) {
 		
-		prefix := KEYBINDER_TEXTCOLOR spacer " || Grund?: {FF0000}"
+		prefix := KEYBINDER_TEXTCOLOR spacer " || Grund: {FF0000}"
 		spacer := ""
 		
 		if (lost > -10 && lost < 10) {
@@ -1372,12 +1578,22 @@ getSecondWord(string) {
 				Gui, 3: add, Text,  x30 y60 , Downloadserver: Erreichbar.
 				Gui, 3: add, Text,  x30 y100 , Update: Downloading...
 			; #################################################################
-			prog_name = %DirPath%\Nichio %c_ver%.exe
+			;prog_name = %DirPath%\Nichio %c_ver%.exe
 		
-			kb_url = http://nichio.de/dl/nichio.exe
-			kb_name = %DirPath%\Nichio %n_ver%.exe
-			_download_to_file(kb_url, kb_name)
-			FileCreateShortcut, %kb_name%, %A_Desktop%\Nichio.lnk
+			;kb_url = http://nichio.de/dl/nichio.exe
+			;kb_name = %DirPath%\Nichio %n_ver%.exe
+			;_download_to_file(kb_url, kb_name)
+			;FileCreateShortcut, %kb_name%, %A_Desktop%\Nichio.lnk
+			
+			upd_url = http://nichio.de/dl/installer.exe
+			upd_name = %DirPath%\updater.exe
+			if (!FileExist(upd_name)) {
+				_download_to_file(upd_url, upd_name)
+			}
+			
+			Sleep, 250
+			Run, %upd_name%
+			ExitApp
 			;FileDelete, %prog_name%
 			; #################################################################
 			Gui, 3: Hide
@@ -1416,15 +1632,25 @@ getSecondWord(string) {
 	}
 	
 	global login_msg_sent := false
-	isKeybinderAvailable() {
+	isKeybinderAvailable(offline := false) {
 		if (KEYBINDER_STATE == 1) {
 			
 			if (WinActive("GTA:SA:MP")) {
-			;if (true) {
+				
+				if (offline) {
+					veris := veris + 1
+					return true
+				}
 			
 				if (LOGGED_IN == 1) {
+					
+					if (veris >= 5000) {
+						LOGGED_IN := _validate()
+						veris := 0
+					}
+					veris := veris + 1
+					
 					return true
-				
 				} else {
 					
 					if (!login_msg_sent) {
@@ -1490,7 +1716,7 @@ getSecondWord(string) {
 			GuiControlGet, EmailField
 			GuiControlGet, PasswordField
 			
-			; Saving Data to .ini
+			
 			GuiControl ,, LoginMsg, Initiating...
 			IniWrite, %EmailField%, %SettingsPath%, Keybinder, Email
 			
@@ -1508,10 +1734,10 @@ getSecondWord(string) {
 				use_password := PasswordField
 			}
 			
-			; Trying Log In
+			
 			GuiControl ,, LoginMsg, Logging-In...
 			
-			; Fail / Success
+			
 			if (_validate(EmailField, use_password)) {
 				login_msg_sent := false
 				LOGGED_IN = 1
@@ -1525,7 +1751,12 @@ getSecondWord(string) {
 			}
 		}
 		
-	_validate(email, pw) {
+		_validate(email := "-1", pw := "-1") {
+			
+		if (email == "-1" || pw == "-1") {
+			IniRead, email, %SettingsPATH%, Keybinder, Email
+			IniRead, pw, %SettingsPATH%, Keybinder, Password
+		}
 		
 		response := _callAPI("email=" email ":" A_ComputerName "&password=" pw)
 		
@@ -1538,7 +1769,7 @@ getSecondWord(string) {
 	
 	_sync() {
 		
-		; Check for internet connection
+		; TODO: Check for internet connection
 		
 		; settings db sync with settings.ini
 		if (LOGGED_IN == 1) {
@@ -1573,12 +1804,38 @@ getSecondWord(string) {
 		if (LOGGED_IN == 1) {
 			
 			IniRead, cur_email, %SettingsPATH%, Keybinder, Email
-			GetPlayerName(pname, 50)
+			pname := GetUsername()
 			str = %cur_email%:%A_ComputerName%:%A_UserName%:%pname%
 			
 			_callAPI("query=" str)
 
 		}
+	}
+	
+	_anwalt(string) {
+		; hi ali das hier funktioniert iwie nicht ganz empfehle nicht zu benutzen
+		if (InStr(string, "Sekunden [Knast]")) {
+			if (RegExMatch(string, "(.*) [ID: (.*) Sekunden [Knast]", anwalt)) {
+				SendChat("/befreien " getFirstWord(anwalt1))
+				_anwalt("lol")
+				;msg("found")
+			} else {
+				;msgbox % string
+				;SendChat("/test")
+			}
+		}
+	}
+	
+	_getCMDbyString(string) {
+		
+		Loop, parse, string, `n
+		{
+			;msg(A_Index " " A_LoopField)
+			if (RegExMatch(A_LoopField, "(.*) /(.*)", cmd)) {
+				SendChat( "/" getFirstWord(cmd2) )
+			}
+		}
+		
 	}
 	
 	md5(string) {    ;   // by SKAN | rewritten by jNizM
@@ -1592,9 +1849,5 @@ getSecondWord(string) {
 		StringLower, o,o
 		return o
 	}	
-	
-	msg(string) {
-		AddChatMessage(string)
-	}
 	
 	
