@@ -23,7 +23,7 @@ To setup your keybinder visit the Account page on Nichio.de
 F2: /carkey  
 F3: /carlock  
 F4: /motor  
-F9: Print Frakion Online Users
+F9: Print Frakion Online Users  
 F12: Disable / Enable Keybinder  
 X: /handystatus <an/aus>  
 Y: Multifunktionstaste  
