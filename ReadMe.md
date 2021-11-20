@@ -1,9 +1,9 @@
 # Project
-This AutoHotKey Keybinder was made for the German GTA San Andreas: Multiplayer Roleplay Server called LiveYourLife Realife (previously: LiveYourDream Roleplay).
+This AutoHotKey Keybinder was made for the German GTA San Andreas: Multiplayer Roleplay Server called LiveYourDream Reloaded (previously: LiveYourDream Roleplay).
 
 # Requirements:
 SAMP: v0.3.7 R1 (doesn't work with R2,R3,R4)  
-(To Edit the Keybinder: AHK ANSI 32Bit)
+(To compile/edit the Keybinder: AHK ANSI 32Bit)
 
 Visit the Wiki at the top for more help on using the Keybinder
 
@@ -17,62 +17,7 @@ Visit the Wiki at the top for more help on using the Keybinder
 
 ## Setup
 
-To setup your keybinder visit the Account page on Nichio.de
-### Hotkeys
-
-F2: /carkey  
-F3: /carlock  
-F4: /motor  
-F9: Print Frakion Online Users  
-F12: Disable / Enable Keybinder  
-X: /handystatus <an/aus>  
-Y: Multifunktionstaste  
-.: /nimmspice  
-,: /nimmdrogen  
-STRG + R: /frespawn  
-^: /pickwaffe  
-
-### Commands
-/autohp: Disable/Enable HP Updater in Chat  
-/autolotto: Automatically buy a /lotto ticket  
-/nc: Write into the Nichio Chat  
-/hotkeys  
-/befehle  
-/config  
-/online  
-/wl  
-/fsb  
-/sb  
-/m4  
-/shotgun  
-/sniper  
-/ja  
-/nein  
-/auf  
-/rlotto  
-/fin  
-/inv  
-/skinid  
-/h  
-/t  
-/find  
-/show  
-/location  
-/savepos  
-/vkwt  
-/vkks  
-/autowc  
-/laufen  
-/version  
-
-### Features:
-Kill Counter  
-Auto-/Zoll  
-Auto-r/lotto  
-Waffenteile, Spice & Drogen Nutzug  
-HP Updater in Chat  
-Positionlistener  
-Nichio Chat  
+To setup your keybinder visit the Account page on https://Nichio.de
 
 
 ### API Usage
