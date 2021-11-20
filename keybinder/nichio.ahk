@@ -53,6 +53,7 @@
 	global cGreen = "{00b200}"
 	global cGray = "{D3D3D3}"
 	global cBlack = "{202020}"
+	global cDarkGray = "{2D2D2D}"
 	global cWhite = "{FFFFFF}"
 	global cYellow = "{FFD700}"
 	global cOrange = "{FFA500}"
@@ -74,9 +75,9 @@
 	fraktionen[10] := Object("NAME", "NineDemons", "SKINS", [247, 248, 100, 261, 291, 158, 162, 199, 200, 201, 146], "COLOR", 0x4E9C00, "COLOR2", "{4E9C00}")
 
 ; ######################### Version Settings #########################
-	global KEYBINDER_VERSION = "3.4.8"
-	global KEYBINDER_GENERATION = ""
-	global KEYBINDER_CLIENTNAME = "Nichio Keybinder"
+	global KEYBINDER_VERSION := "3.5.4"
+	global KEYBINDER_GENERATION := ""
+	global KEYBINDER_CLIENTNAME := "Nichio Keybinder"
 	global KEYBINDER_CLIENTVERSION = KEYBINDER_GENERATION KEYBINDER_VERSION
 	IniWrite, %KEYBINDER_VERSION%, %SettingsPath%, Keybinder, Version
 	
@@ -84,24 +85,29 @@
 	CheckForUpdate()
 	
 ; ######################### Prefix & Colors #########################
-	global KEYBINDER_PREFIX = cGray "["  cOrange "Nichio" cBlue "" cGray "] " cWhite
+	global KEYBINDER_PREFIX := cGray "["  cOrange "Nichio" cGray "]  " cWhite
 	global KEYBINDER_CHAT = cOrange
-	global KEYBINDER_PREFIXERROR = cWhite "" cGray "["  cOrange "Nichio" cBlue "" cGray "] " cGray "[" cRed "FEHLER" cGray "]: " cWhite
-	global KEYBINDER_PREFIXGREEN = cWhite "" cGray "["  cOrange "Nichio" cBlue "" cGray "] " cGreen
-	global KEYBINDER_PREFIXRED = cWhite "" cGray "["  cOrange "Nichio" cBlue "" cGray "] " cRed
+	global KEYBINDER_PREFIXERROR = cGray "["  cOrange "Nichio" cGray "]  " cGray "[" cRed "FEHLER" cGray "]: " cWhite
+	global KEYBINDER_PREFIXGREEN = cGray "["  cOrange "Nichio" cGray "]  " cGreen
+	global KEYBINDER_PREFIXRED = cGray "["  cOrange "Nichio" cGray "]  " cRed
 	
 ; ######################### State #########################	
 	global KEYBINDER_STATE := 1
+	global KEKSBOT_STATE := 0
 	global LOGGED_IN := 0
-	global togglehp = 1
-	global Detektiv = 0
-	global Locing = 0
-	global HANDY_STATE = 1
-	global Laufscript = 1
-	global autolotto := 1
+	global togglehp := 1
+	global Detektiv := 0
+	global Locing := 0
+	global HANDY_STATE := 1
+	global Laufscript := 0
+	
 	global veris := 0
-	global WCoding = 0
-	global AutoAnwalt = 0
+	global WCoding := false
+	global autolotto := 1
+	global autohelp := true
+	global AutoAnwalt := false
+	global autopickup := true
+	global cmdDialog := ""
 	
 	Time := A_NowUTC
 	EnvSub, Time, 19700101000000, Seconds	; bro kp was hier passiert akzeptier es einfach für unix timestamp lol					
@@ -118,6 +124,7 @@
 	
 	SetTimer, ChatListener, 250
 	SetTimer, ChatResponder, 50
+	SetTimer, DialogListener, 50
 	SetTimer, PositionListener, 250
 	SetTimer, BotLogic, 1000
 	
@@ -131,6 +138,16 @@
 	; Titel & GUI
 		Gui, 1: Show, h500 w800, %KEYBINDER_CLIENTNAME% | Version: %KEYBINDER_CLIENTVERSION% 
 		Gui, 1: Color, 202020
+		
+	; Custom Title Bar
+	
+		;Gui, 1: -Caption +Border
+		
+		;Gui, 1: font, c00FF00
+		;Gui, 1: font, s8 bold, Futura-Book  
+		
+		;Gui, 1: Add, Text, -theme x0 y0 w780 h25 0x4 gGuiMove
+		;Gui, 1: add, Button, -theme x775 y0 cRed w25 h25 gGuiClose, X		
 
 	; Font 1
 		Gui, 1: font, c00FF00
@@ -197,8 +214,8 @@
 		
 		; Login Button
 		Gui, 1: font, s14
-		Gui, 1: add, Button, -theme x320 y150 w120 h30 gLogin, Login
-		Gui, 1: Add, Text, x450 y150 w400 vLoginMsg, Waiting...
+		Gui, 1: add, Button, -theme x320 y150 w120 h32 gLogin, Login
+		Gui, 1: Add, Text, x450 y154 w320 h100 vLoginMsg, Waiting...
 		
 		; ################ Try Auto Login if something is saved in ini file
 		if (kb_pass != "ERROR" && kb_email != "ERROR") {
@@ -425,8 +442,9 @@
 				_anwalt(line2)
 				_anwalt(line3)
 				
-				Random, randAnwalt, 3, 7
-				skips_anwalt := randAnwalt * tickrate
+				;Random, randAnwalt, 3, 7
+				;skips_anwalt := randAnwalt * tickrate
+				skips_anwalt := 0.5 * tickrate
 			}
 			skips_anwalt--
 		}
@@ -438,6 +456,379 @@
 			;ShowGameText(location_string, 1000, 1)
 		}
 		
+	}
+	return
+	
+	DialogListener:
+	if (isKeybinderAvailable()) {
+		if (cmdDialog != "") {
+			
+			if (cmdDialog == "/befehle") {
+				dialogText := ""
+				dialogText := dialogText cBlue "Befehle" "`n"
+				dialogText := dialogText cLime "/ja" cWhite " - /ja Spruch" "`n"
+				dialogText := dialogText cLime "/auf" cWhite " - /auf Spruch" "`n"
+				dialogText := dialogText cLime "/nein" cWhite " - 15 Sekunden Mailbox" "`n"
+				dialogText := dialogText cLime "/vkwt" cWhite " - Verkaufe Waffenteile für Maxpreis" "`n"
+				dialogText := dialogText cLime "/vkks" cWhite " - Verkaufe Kekse für Maxpreis" "`n"
+				dialogText := dialogText cLime "/rlotto" cWhite " - Zufällige Lottozahl kaufen" "`n"
+				dialogText := dialogText " " "`n"
+				dialogText := dialogText cBlue "Kurze Befehle" "`n"
+				dialogText := dialogText cLime "/inv" cWhite " - kurz: /inventar" "`n"
+				dialogText := dialogText cLime "/fin" cWhite " - kurz: /finanzen" "`n"
+				dialogText := dialogText cLime "/wl" cWhite " - kurz: /waffenlager" "`n"
+				dialogText := dialogText cLime "/sb" cWhite " - kurz: /safebox" "`n"
+				dialogText := dialogText cLime "/fsb" cWhite " - kurz: /fsafebox" "`n"
+				dialogText := dialogText " " "`n"
+				dialogText := dialogText cBlue "Bots" "`n"
+				dialogText := dialogText cLime "/t" cWhite " - Bot: Detektiv ->  Target <t> setzen" "`n"
+				dialogText := dialogText cLime "/h" cWhite " - Bot: Detektiv ->  Helfer <h> setzen" "`n"
+				dialogText := dialogText cLime "/find" cWhite " - Bot: Detektiv -> /dfinden <t>" "`n"
+				dialogText := dialogText cLime "/show" cWhite " - Bot: Detektiv ->  /dzeigen <h> <t>" "`n"
+				dialogText := dialogText cLime "/autowc" cWhite " - Bot: Wantedhacker -> /wcodes" "`n"
+				dialogText := dialogText cLime "/autohp" cWhite " - Bot: HP Updater im Chat" "`n"
+				dialogText := dialogText cLime "/autolotto" cWhite " - Bot: Automatisches /rlotto" "`n"
+				dialogText := dialogText cLime "/autopickup" cWhite " - Bot: Automatisches /pickwaffe" "`n"
+				dialogText := dialogText cLime "/autohelp" cWhite " - Bot: Automatisch Checkpoint setzen wenn jemand Hilfe braucht" "`n"
+				dialogText := dialogText cLime "/laufen" cWhite " - Bot: Automatisch Laufscript" "`n"
+				dialogText := dialogText " " "`n"
+				dialogText := dialogText cBlue "Scripts" "`n"
+				dialogText := dialogText cLime "/m4" cWhite " - script: /wl -> M4 Kaufen" "`n"
+				dialogText := dialogText cLime "/sniper" cWhite " - script: /wl -> Sniper Kaufen" "`n"
+				dialogText := dialogText cLime "/shotgun" cWhite " - script: /wl -> Shotgun Kaufen" "`n"
+				dialogText := dialogText " " "`n"
+				dialogText := dialogText cBlue "Nichio Client" "`n"
+				dialogText := dialogText cLime "/nc" cWhite " - Nichio Client: Internet Relay Chat" "`n"
+				dialogText := dialogText cLime "/online" cWhite " - Nichio Client: List Online Users" "`n"
+				dialogText := dialogText cLime "/togglecp" cWhite " - Checkpoint anzeigen an/aus (Nichio Helping Location)" "`n"
+				dialogText := dialogText " " "`n"
+				dialogText := dialogText cBlue "Debugging" "`n"
+				dialogText := dialogText cLime "/location" cWhite " - Debug: Location Shower" "`n"
+				dialogText := dialogText cLime "/gebiete" cWhite " - Debug: Gebiete auslesen" "`n"
+				dialogText := dialogText cLime "/skinid" cWhite " - Debug: SkinID auslesen" "`n"
+				dialogText := dialogText cLime "/savepos" cWhite " - speichere coords in savedpositions.ini" "`n"
+				dialogText := dialogText cLime "/vorschlag <text>" cWhite " - Schicke mir einen Vorschlag für den Keybinder" "`n"
+				dialogText := dialogText cLime "/vorschlagliste" cWhite " - Unfertige Vorschläge auslesen" "`n"
+				
+				showDialog(4, cRed "Nichio Keybinder Befehle", dialogText, "Done")
+				
+			} else if (cmdDialog == "/hotkeys") {
+				;AddChatMessage(cRed "==============" cBlue " KeyBinder Hotkeys " cRed "==============" )
+				;AddChatMessage(cRed "F2: " cBlue "/carkey" cGray " | | " cRed "F3: " cBlue "/carlock" cGray " | | " cRed "F4: " cBlue "/motor" )
+				;AddChatmessage(cRed ".: " cBlue "/nimmspice" cGray " | | " cRed ",: " cBlue "/nimmdrogen" cGray " | | " cRed "F12: " cBlue "Keybinder An/Aus")
+				;AddChatMessage(cRed "X: " cBlue "Handy An/Aus" cGray " | | " cRed "Y: " cBlue "Multifunktionstaste" cGray " | | " cRed "+: " cBlue "Config auslesen" )
+				;AddChatMessage(cRed "STRG K: " cBlue "KeksBot" cGray " | | " cRed "^: " cBlue "/pickwaffe" cGray " | | " cRed "Shift: " cBlue "Laufscript" )
+				;AddChatMessage(cRed "STRG R: " cBlue "/frespawn" cGray " | | " cRed "C: " cBlue "Print Fraktions Users" cGray " | | " cRed "-: " cBlue "-" )
+				;AddChatMessage(cRed "==========================================" )
+				
+				dialogText := ""
+				dialogText := dialogText cBlue "Basics" "`n"
+				dialogText := dialogText cLime "F2" cWhite " - /carkeys" "`n"
+				dialogText := dialogText cLime "F3" cWhite " - /carlock" "`n"
+				dialogText := dialogText cLime "F4" cWhite " - /motor" "`n"
+				dialogText := dialogText cLime "F12" cWhite " - Keybinder An/Aus" "`n"
+				dialogText := dialogText " " "`n"
+				dialogText := dialogText cBlue "Advanced" "`n"
+				dialogText := dialogText cLime "." cWhite " - /nimmspice" "`n"
+				dialogText := dialogText cLime "," cWhite " - /nimmdrogen" "`n"
+				dialogText := dialogText cLime "X" cWhite " - /handystatus <an/aus>" "`n"
+				dialogText := dialogText cLime "Y" cWhite " - Multifunktionstaste" "`n"
+				dialogText := dialogText cLime "+" cWhite " - Keybinder Config" "`n"
+				dialogText := dialogText cLime "#" cWhite " - Keybinder Guide" "`n"
+				dialogText := dialogText cLime "^" cWhite " - Nichio Helping (Location)" "`n"
+				dialogText := dialogText cLime "C" cWhite " - Fraktions-Spieler in der Naehe" "`n"
+				dialogText := dialogText cLime "STRG C" cWhite " - Spieler in der Naehe" "`n"
+				dialogText := dialogText cLime "STRG R" cWhite " - /frespawn" "`n"
+				dialogText := dialogText cLime "STRG K" cWhite " - KeksBot" "`n"
+				dialogText := dialogText cLime "Shift" cWhite " - Laufscript" "`n"
+
+				
+				showDialog(4, cRed "Nichio Keybinder Hotkeys", dialogText, "Done")
+				
+			} else if (cmdDialog == "/changelogs") {
+				dialogText := ""
+				dialogText := dialogText cBlue "Versionen" "`n"
+				dialogText := dialogText cLime "1.0.0" "`n"
+				dialogText := dialogText cLime "2.0.0" "`n"
+				dialogText := dialogText cLime "3.0.0" "`n"
+				dialogText := dialogText cLime "3.1.0" "`n"
+				dialogText := dialogText cLime "3.4.6" "`n"
+				dialogText := dialogText cLime "3.4.7" "`n"
+				dialogText := dialogText cLime "3.4.8" "`n"
+				dialogText := dialogText cLime "3.5.0" "`n"
+				dialogText := dialogText cLime "3.5.1" "`n"
+				
+				showDialog(4, cRed "Nichio Keybinder Changelogs", dialogText, "Done")
+				
+			} else if (getFirstWord(cmdDialog) == "/changelog") {
+				v := getSecondWord(cmdDialog)
+				;msg(v)
+				dialogText := ""
+				
+				if (v == "template") {
+					dialogText := dialogText cGreen "New" "`n"
+					dialogText := dialogText cLime "XXX" cWhite " - XXXXXXXXXXXX" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cOrange "Changed" "`n"
+					dialogText := dialogText cLime "XXX" cWhite " - XXXXXXXXXXXX" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cRed "Removed" "`n"
+					dialogText := dialogText cLime "XXX" cWhite " - XXXXXXXXXXXX" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cBlue "Bug Fixes" "`n"
+					dialogText := dialogText cLime "XXX" cWhite " - XXXXXXXXXXXX" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cGray "Date: XX.YY.ZZZZ" "`n"
+				}
+				
+				if (v == "3.5.4") {
+					dialogText := dialogText cGreen "New" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cOrange "Changed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cRed "Removed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cBlue "Bug Fixes" "`n"
+					dialogText := dialogText cLime "/autopickup" cWhite " - Maßnahmen gegen Command-Spam kick" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cGray "Date: 15.11.2021" "`n"
+				}
+				
+				if (v == "3.5.3") {
+					dialogText := dialogText cGreen "New" "`n"
+					dialogText := dialogText cLime "^::" cWhite " - Nichio Intern Help (Location)" "`n"
+					dialogText := dialogText cLime "/togglecp:" cWhite " - Checkpoint anzeigen an/aus" "`n"
+					dialogText := dialogText cLime "/autohelp:" cWhite " - Automatisch Checkpoint setzen wenn jemand Hilfe braucht" "`n" 
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cOrange "Changed" "`n"
+					dialogText := dialogText cLime "XXX" cWhite " - XXXXXXXXXXXX" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cRed "Removed" "`n"
+					dialogText := dialogText cLime "XXX" cWhite " - XXXXXXXXXXXX" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cBlue "Bug Fixes" "`n"
+					dialogText := dialogText cLime "Y::" cWhite " - Tanke an der SH ging nicht" "`n"
+					dialogText := dialogText cLime "/nc:" cWhite " - Maßnahmen gegen '/' da es zu Fehlern geführt hat." "`n"
+					dialogText := dialogText cLime "/vorschlag:" cWhite " - Maßnahmen gegen '/' da es zu Fehlern geführt hat." "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cGray "Date: 14.11.2021" "`n"
+				}
+				
+				if (v == "3.5.2") {
+					dialogText := dialogText cGreen "New" "`n"
+					dialogText := dialogText cLime "/vorschlag <text>" cWhite " - Schicke mir einen Vorschlag für den Keybinder" "`n"
+					dialogText := dialogText cLime "/vorschlagliste" cWhite " - Unfertige Vorschläge auslesen" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cOrange "Changed" "`n"
+					dialogText := dialogText cLime "/changelog <version>" cWhite " - Changelogs haben ab jetzt ein Datum" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cRed "Removed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cBlue "Bug Fixes" "`n"
+					dialogText := dialogText cLime "/online" cWhite " - ID wurde falsch angezeigt bei sich selbst" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cGray "Date: 13.11.2021" "`n"
+				}
+				
+				
+				if (v == "3.5.1") {
+					dialogText := dialogText cGreen "New" "`n"
+					dialogText := dialogText cLime "/autopickup" cWhite " - Automatisches /Pickwaffe An/Aus" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cOrange "Changed" "`n"
+					dialogText := dialogText cLime "/online" cWhite " - in Dialog & Server Name" "`n"
+					dialogText := dialogText cLime "^:" cWhite " - Automatisches /Pickwaffe An/Aus" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cRed "Removed" "`n"
+					dialogText := dialogText cLime "" cWhite " - " "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cBlue "Bug Fixes" "`n"
+					dialogText := dialogText cLime "/nc" cWhite " - Chars werden jetzt escaped (z.B. ? & %)" "`n"
+				}
+				
+				if (v == "3.5.0") {
+					dialogText := dialogText cGreen "New" "`n"
+					dialogText := dialogText cLime "Dialog Overhaul:" cWhite " - Viele Befehle haben jetzt Dialoge statt Chat Nachrichten" "`n"
+					dialogText := dialogText cLime "STRG C:" cWhite " - Spieler in der Naehe auslesen" "`n"
+					dialogText := dialogText cLime "/gebiete:" cWhite " - Gangfight Gebiete auslesen" "`n"
+					dialogText := dialogText cLime "/changelog:" cWhite " - Jetzige Changelogs ansehen" "`n"
+					dialogText := dialogText cLime "/changelog <version>:" cWhite " - Changelogs zur <version> auslesen" "`n"
+					dialogText := dialogText cLime "/changelogs:" cWhite " - Mögliche Changelogs auslesen" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cOrange "Changed" "`n"
+					dialogText := dialogText cLime "F9: -> C:" cWhite " - Fraktions-Spieler in der Naehe auslesen" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cRed "Removed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cBlue "Bug Fixes" "`n"
+					dialogText := dialogText cLime "Y:" cWhite " - Verbesserte Label Detection" "`n"
+				}
+				
+				if (v == "3.4.8") {
+					dialogText := dialogText cGreen "New" "`n"
+					dialogText := dialogText cLime "F9:" cWhite " - Fraktions-Spieler in der Naehe auslesen" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cOrange "Changed" "`n"
+					dialogText := dialogText cLime "Y:" cWhite " - Label detection statt Position Listener" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cRed "Removed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cBlue "Bug Fixes" "`n"
+					dialogText := dialogText cLime "/autoanwalt" cWhite " - Funktioniert jetzt, nicht mehr buggy" "`n"
+				}
+				
+				if (v == "3.4.7") {
+					dialogText := dialogText cGreen "New" "`n"
+					dialogText := dialogText cLime "/unlockfps <true/false>" cWhite " - FPS Unlocker Added" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cOrange "Changed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cRed "Removed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cBlue "Bug Fixes" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+				}
+				
+				if (v == "3.4.6") {
+					dialogText := dialogText cGreen "New" "`n"
+					dialogText := dialogText cLime "API Change" cWhite " - Neue API - thx @dape." "`n"
+					dialogText := dialogText cLime "/autoanwalt" cWhite " - Auto Anwalt added (buggy)" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cOrange "Changed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cRed "Removed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cBlue "Bug Fixes" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+				}
+				
+				if (v == "3.1.0") {
+					dialogText := dialogText cGreen "New" "`n"
+					dialogText := dialogText cLime "/nc <msg>" cWhite " - IRC: Nichio Chat added" "`n"
+					dialogText := dialogText cLime "/autoanwalt" cWhite " - Auto Anwalt added (buggy)" "`n"
+					dialogText := dialogText cLime "/autolotto" cWhite " - Auto Lotto added" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cOrange "Changed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cRed "Removed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cBlue "Bug Fixes" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+				}
+				
+				if (v == "3.0.0") {
+					dialogText := dialogText cGreen "New" "`n"
+					dialogText := dialogText cLime "Website" cWhite " - Nichio.de Integration" "`n"
+					dialogText := dialogText cLime "Cloud Saving" cWhite " - Nichio.de Settings.ini Cloud Saving" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cOrange "Changed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cRed "Removed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cBlue "Bug Fixes" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+				}
+				
+				if (v == "2.0.0") {
+					dialogText := dialogText cGreen "New" "`n"
+					dialogText := dialogText cLime "Rebranding" cWhite " - Rebranding EzKeys to Nichio" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cOrange "Changed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cRed "Removed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cBlue "Bug Fixes" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+				}
+				
+				if (v == "1.0.0") {
+					dialogText := dialogText cGreen "New" "`n"
+					dialogText := dialogText cLime "Release" cWhite " - EzKeys Keybinder Initial Release" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cOrange "Changed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cRed "Removed" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+					dialogText := dialogText " " "`n"
+					dialogText := dialogText cBlue "Bug Fixes" "`n"
+					dialogText := dialogText cLime "-" cWhite " - -" "`n"
+				}
+				
+				showDialog(4, cRed "Nichio Keybinder Changelog v" v, dialogText, "Done")
+			} else if (getFirstWord(cmdDialog) == "/online") {
+			
+				;getOnline := getSecondWord(cmdDialog)
+				getOnline := SubStr(cmdDialog, 9) ; "/online " wird aus dem String entfernt
+			
+				dialogText := ""
+				dialogText := dialogText cBlue "Users Online" "`n"
+				
+				Loop, Parse, getOnline, `& 
+				{
+					
+					if (A_LoopField != "") {
+						
+						player := StrSplit(A_LoopField, ":")
+						
+						if (getUsername() == player[1]) {
+							dialogText := dialogText cOrange player[2] cWhite " | " cLime player[1] cWhite " - " cBlue " (me)" "`n"
+						} else {
+							dialogText := dialogText cOrange player[2] cWhite " | " cLime player[1] cWhite " - ID: " getPlayerID(player[1])  "`n"
+						}
+						
+						;AddChatMessage(KEYBINDER_PREFIX "ID: " getPlayerID(A_LoopField) " - " A_LoopField)
+						
+					}
+					
+				}
+				
+				showDialog(4, cRed "Nichio Keybinder Online-List", dialogText, "Done")
+	
+			} else if (cmdDialog == "/vorschlagliste") {
+				response := _callAPI("request=getSuggestions")
+				
+				vorschlags := response.getSuggestions
+			
+				dialogText := ""
+				dialogText := dialogText cBlue "Vorschläge" "`n"
+				
+				Loop, Parse, vorschlags, |||
+				{
+					
+					if (A_LoopField != "") {
+						
+						current := StrSplit(A_LoopField, "\")
+						
+						;msg(A_LoopField)
+						dialogText := dialogText cGray "Nr. " current[1] " " cOrange current[2] cGray ": " cWhite current[3] "`n"
+						
+					}
+					
+				}
+				
+				showDialog(4, cRed "Nichio Keybinder Online-List", dialogText, "Done")
+			
+			}
+			
+			cmdDialog := ""
+		}
 	}
 	return
 	
@@ -498,7 +889,7 @@
 			SendChat("/zoll")
 		}
 		
-		if InStr(ChatLine, "Kaufe dir mit /Lotto ein Lottoticket für $10.000 und versuche dein Glück!") {
+		if (InStr(ChatLine, "Kaufe dir mit /Lotto ein Lottoticket") && InStr(ChatLine, "$10.000 und versuche dein")) {
 			if (autolotto == 1) {
 				Random, LottoNummer, 1, 100
 				SendChat("/lotto " LottoNummer)
@@ -634,6 +1025,23 @@
 	
 	PositionListener:
 	if (isKeybinderAvailable(true)) {
+		
+		; Auto Pickup
+		if (autopickup) {
+			model_closest := getClosestPickupModel()
+			
+			if (model_closest > 320 && model_closest < 371) {
+				model_distance := getDistanceToPickup(model_closest)
+				if (distance < 0.5) {
+					IniRead, p_spruch, %SettingsPath%, InGame, Pickspruch
+					SendChat("/pickwaffe")
+					SendChat(p_spruch)
+					Sleep, 500
+				}
+			}
+		}
+		
+		
 		if(IsPlayerInRange3D(-1857.0846,-1618.0605,21.4436, 5)) {
 			SendChat("/paketentladen")
 			ShowGameText("+"  (wdealerpakete * 100) " Waffenteile!", 3000, 3)
@@ -670,8 +1078,25 @@
 		if (response.getNewMSGTimestamp > 0) {
 			
 			CHAT_TIMESTAMP := response.getNewMSGTimestamp
-		
-			AddChatMessage(cOrange "** Nichio " cGray response.getNewMSGAuthor cWhite ": " cWhite response.getNewMSG cOrange " **")
+			
+			if (InStr(response.getNewMSG, "[LOCATION]: ")) {
+				
+				message_split := StrSplit(response.getNewMSG, "[LOCATION]: ")
+				
+				coords := StrSplit(message_split[2], ",")
+				
+				if (autohelp) {
+					NEWSetCheckpoint(coords[1], coords[2], coords[3])
+				}
+				
+				zone := calculateZone(coords[1], coords[2], coords[3])
+				city := calculateCity(coords[1], coords[2], coords[3])
+				
+				AddChatMessage(cRed "** Nichio " cGreen "Location " cGray response.getNewMSGAuthor cWhite ": " cWhite message_split[1] "" zone " in " city cRed " **")
+			} else {
+				AddChatMessage(cOrange "** Nichio " cGray response.getNewMSGAuthor cWhite ": " cWhite response.getNewMSG cOrange " **")
+			}
+			
 		}
 		
 	}
@@ -737,47 +1162,126 @@
 
 ; ########################## CUSTOM COMMANDS ######################
 
-Enter::
-		if (!isKeybinderAvailable(true)) {
-			SendInput, {enter}
-			return
-		}
-		
-		if (IsDialogOpen()) {
-			SendInput, {enter}
-		}
-		
-		clip := ClipboardAll
-		Clipboard := ""
-		SendInput, {Right}a{BackSpace}^a^c ;^A{Backspace}
-		ClipWait, 0.1
-		chatText := Clipboard
-		Clipboard := clip
-
-		if (chatText == -1 || chatText == "")
-			return
-
-		if (SubStr(chatText, 1, 1) == "/") {
-			if (!OnPlayerCommand(chatText)) {
-				SendInput, {enter}
-			} else {
-				if (InStr("/q/quit/save/rs/interior/fpslimit/pagesize/headmove/timestamp/dl/nametagstatus/mem/audiomsg/fontsize/ctd/rcon/idktest/", chatText)) {
-					SendInput, {Enter}
-				} else {
-					SendInput, {Backspace}{Escape}
-				}
-			}
-		} else {
-			SendInput, {enter}
-		}
-	return
-
 ; ===== "Callback" for evaluation of commands =====
 
 CMDyoyo(params := "") {
 	Loop, 20 {
 		msg("")
 	}
+	msg(getPlayerPos()[1] ", " getPlayerPos()[2] ", " getPlayerPos()[3] )
+	return true
+}
+
+global cp := true
+CMDtogglecp(params := "") {
+	cp := !cp
+	toggleCheckpoint(cp)
+	return true
+}
+
+CMDvorschlag(params := "") {
+	if (params == "") {
+		msg(KEYBINDER_PREFIX "Benutzung: /vorschlag <text>")
+		return true
+	}
+	
+	IfInString, params, /
+	{
+		msg(KEYBINDER_PREFIXERROR "Bitte kein '/' benutzen.")
+		return true
+	}
+	
+	StringLen, length, params
+	
+	if (length > 75) {
+		msg(KEYBINDER_PREFIX "Deine Nachricht ist zu lang. Maximale Länge: 75 Buchstaben. Deine Nachricht: " length)
+		return true
+	}
+	
+	_callAPI("sendSuggestion=" UrlEncode(params) )
+	
+	msg(KEYBINDER_PREFIX "Vorschlag gesendet: " cGray params)
+	
+	
+	
+	return true
+}
+
+CMDvorschlagliste(params := "") {
+	cmdDialog := "/vorschlagliste"
+	
+	return true
+}
+
+CMDonline(params := "") {
+	
+	response := _callAPI("request=getOnline")
+	
+	getOnline := response.getOnline
+	
+	cmdDialog := "/online " getOnline
+	
+	; // response wird im format ausgegeben => kensho.nichio&tazsuyo.nichio&
+	return true
+}
+
+CMDchangelog(params := "") {
+	if (params == "") {
+		msg(KEYBINDER_PREFIX "Benutzung: /changelog <version>")
+		msg(KEYBINDER_PREFIX "Versionen: /changelogs")
+		params := KEYBINDER_VERSION
+		;return true
+	}
+	
+	if (params == "dev")
+		cmdDialog := "/changelog dev"
+	else 
+		cmdDialog := "/changelog " params
+	
+	return true
+}
+
+CMDchangelogs(params := "") {
+	msg(KEYBINDER_PREFIX "3.0.0 & 3.X.X todo in Dialog")
+	cmdDialog := "/changelogs"
+	return true
+}
+
+CMDgebiete(params := "") {
+	if (!updateGangzones())
+			return
+
+	total := 0
+	arr := [0, 0, 0, 0, 0, 0, 0, 0]
+	for i, fGangZ in oGangzones {
+		for j, k in fraktionen {
+			if (fGangZ.COLOR1 == k.GANGZONE) {
+				arr[j]++
+				break
+			}
+		}
+
+		total := i
+	}
+
+	string := ""
+	for h, m in arr
+		string .= m "," h "`n"
+
+	Sort string, NR
+	AddChatMessage(KEYBINDER_PREFIX "=======GEBIETE=======")
+	Loop, Parse, string, `n
+	{
+		if (A_LoopField == "")
+			continue
+
+		var := StrSplit(A_LoopField, ",")
+		AddChatMessage(KEYBINDER_PREFIX  "" fraktionen[var[2]].NAME ": {FFFFFF}[" var[1] "/" total "]", fraktionen[var[2]].COLOR)
+		Sleep, 20
+	}
+
+	AddChatMessage(KEYBINDER_PREFIX "=====================", COLOR_GREEN)
+		
 	return true
 }
 
@@ -811,6 +1315,15 @@ CMDautoanwalt(params := "") {
 	return true
 }
 
+CMDautopickup(params := "") {
+	autopickup := !autopickup
+	if (autopickup == 1) 
+		msg(KEYBINDER_PREFIX "Auto-Pickup wurde aktiviert.")
+	else
+		msg(KEYBINDER_PREFIX "Auto-Pickup wurde deaktiviert.")
+	return true
+}
+
 CMDautohp(params := "") {
 	togglehp := !togglehp
 	if (togglehp == 1)
@@ -831,38 +1344,64 @@ CMDautolotto(params := "") {
 	return true
 }
 
+CMDautohelp(params := "") {
+	autohelp := !autohelp
+	if (autohelp == 1)
+		msg(KEYBINDER_PREFIX "Auto-Help wurde angeschalten.")
+	else
+		msg(KEYBINDER_PREFIX "Auto-Help wurde ausgeschalten.")
+	
+	return true
+}
+
 CMDnc(params := "") {
+	
+	IfInString, params, /
+	{
+		msg(KEYBINDER_PREFIXERROR "Bitte kein '/' benutzen.")
+		return true
+	}
 		
-	msg := params
-	response_str = request=sendMSG&msg=%msg%
+	msg := "" UrlEncode(params) ""
+	
+	;msgbox % uriEncode(params) ""
+	; test? := test%0x3F
+	
+	;msg(msg)
+	
+	response_str := "request=sendMSG&msg=" msg
 	_callAPI(response_str)
 	
 	return true
 }
 
 CMDhotkeys(params := "") {
-	AddChatMessage(cRed "==============" cBlue " KeyBinder Hotkeys " cRed "==============" )
-	AddChatMessage(cRed "F2: " cBlue "/carkey" cGray " | | " cRed "F3: " cBlue "/carlock" cGray " | | " cRed "F4: " cBlue "/motor" )
-	AddChatmessage(cRed ".: " cBlue "/nimmspice" cGray " | | " cRed ",: " cBlue "/nimmdrogen" cGray " | | " cRed "F12: " cBlue "Keybinder An/Aus")
-	AddChatMessage(cRed "X: " cBlue "Handy An/Aus" cGray " | | " cRed "Y: " cBlue "Multifunktionstaste" cGray " | | " cRed "+: " cBlue "Config auslesen" )
-	AddChatMessage(cRed "STRG K: " cBlue "KeksBot" cGray " | | " cRed "^: " cBlue "/pickwaffe" cGray " | | " cRed "Shift: " cBlue "Laufscript" )
-	AddChatMessage(cRed "STRG R: " cBlue "/frespawn" cGray " | | " cRed "F9: " cBlue "Print Fraktions Users" cGray " | | " cRed "-: " cBlue "-" )
-	AddChatMessage(cRed "==========================================" )
+	;AddChatMessage(cRed "==============" cBlue " KeyBinder Hotkeys " cRed "==============" )
+	;AddChatMessage(cRed "F2: " cBlue "/carkey" cGray " | | " cRed "F3: " cBlue "/carlock" cGray " | | " cRed "F4: " cBlue "/motor" )
+	;AddChatmessage(cRed ".: " cBlue "/nimmspice" cGray " | | " cRed ",: " cBlue "/nimmdrogen" cGray " | | " cRed "F12: " cBlue "Keybinder An/Aus")
+	;AddChatMessage(cRed "X: " cBlue "Handy An/Aus" cGray " | | " cRed "Y: " cBlue "Multifunktionstaste" cGray " | | " cRed "+: " cBlue "Config auslesen" )
+	;AddChatMessage(cRed "STRG K: " cBlue "KeksBot" cGray " | | " cRed "^: " cBlue "/pickwaffe" cGray " | | " cRed "Shift: " cBlue "Laufscript" )
+	;AddChatMessage(cRed "STRG R: " cBlue "/frespawn" cGray " | | " cRed "C: " cBlue "Print Fraktions Users" cGray " | | " cRed "-: " cBlue "-" )
+	;AddChatMessage(cRed "==========================================" )
+	
+	cmdDialog := "/hotkeys"
 	return true
 }
 
 CMDbefehle(params := "") {
-	AddChatMessage(cRed "==============" cBlue " KeyBinder Befehle " cRed "==============" )
-	AddChatMessage(cRed "/ja: " cBlue "Anruf annehmen" cGray " | | " cRed "/nein: " cBlue "Mailbox" cGray " | | " cRed "/auf: " cBlue "Anruf auflegen" )
-	AddChatMessage(cRed "/wl: " cBlue "/Waffenlager" cGray " | | " cRed "/sb: " cBlue "/Safebox" cGray " | | " cRed "/fsb: " cBlue "/FSafebox" )
-	AddChatMessage(cRed "/find: " cBlue "AutoFind Bot" cGray " | | " cRed "/show: " cBlue "AutoShow Bot" cGray " | | " cRed "/vkwt: " cBlue "Verkaufe WT")
-	AddChatMessage(cRed "/rlotto: " cBlue "Random Lotto" cGray " | | " cRed "/inv: " cBlue "/inventar" cGray " | | " cRed "/fin: " cBlue "/finanzen" )
-	AddChatMessage(cRed "/location: " cBlue "Location Overlay" cGray " | | " cRed "/autowc: " cBlue "AFK Wantedcodes Farmen" )
-	AddChatMessage(cRed "/laufen: " cBlue "Laufscript" cGray " | | " cRed "/vkks: " cBlue "Verkaufe Kekse" cGray " | | " cRed "/laufen: " cBlue "Laufscript")
-	AddChatMessage(cRed "/skinid: " cBlue "Gib deine SkinID Aus" cGray " | | " cRed "/m4: " cBlue "Kaufe eine M4" cGray " | | " cRed "/sniper: " cBlue "Kaufe eine AWP" )
-	AddChatMessage(cRed "/shotgun: " cBlue "Kaufe eine Shotgun" cGray " | | " cRed "/nc : " cBlue "Nichio-Chat" cGray " | | " cRed "/online: " cBlue "Siehe wer gerade mit dem Keybinder online ist" )
-	AddChatMessage(cRed "/autohp: " cBlue "HP Updater umschalten" cGray " | | " cRed "/x : " cBlue "x" cGray " | | " cRed "/x: " cBlue "x" )
-	AddChatMessage(cRed "==========================================" )
+	;AddChatMessage(cRed "==============" cBlue " KeyBinder Befehle " cRed "==============" )
+	;AddChatMessage(cRed "/ja: " cBlue "Anruf annehmen" cGray " | | " cRed "/nein: " cBlue "Mailbox" cGray " | | " cRed "/auf: " cBlue "Anruf auflegen" )
+	;AddChatMessage(cRed "/wl: " cBlue "/Waffenlager" cGray " | | " cRed "/sb: " cBlue "/Safebox" cGray " | | " cRed "/fsb: " cBlue "/FSafebox" )
+	;AddChatMessage(cRed "/find: " cBlue "AutoFind Bot" cGray " | | " cRed "/show: " cBlue "AutoShow Bot" cGray " | | " cRed "/vkwt: " cBlue "Verkaufe WT")
+	;AddChatMessage(cRed "/rlotto: " cBlue "Random Lotto" cGray " | | " cRed "/inv: " cBlue "/inventar" cGray " | | " cRed "/fin: " cBlue "/finanzen" )
+	;AddChatMessage(cRed "/location: " cBlue "Location Overlay" cGray " | | " cRed "/autowc: " cBlue "AFK Wantedcodes Farmen" )
+	;AddChatMessage(cRed "/laufen: " cBlue "Laufscript" cGray " | | " cRed "/vkks: " cBlue "Verkaufe Kekse" cGray " | | " cRed "/laufen: " cBlue "Laufscript")
+	;AddChatMessage(cRed "/skinid: " cBlue "Gib deine SkinID Aus" cGray " | | " cRed "/m4: " cBlue "Kaufe eine M4" cGray " | | " cRed "/sniper: " cBlue "Kaufe eine AWP" )
+	;AddChatMessage(cRed "/shotgun: " cBlue "Kaufe eine Shotgun" cGray " | | " cRed "/nc : " cBlue "Nichio-Chat" cGray " | | " cRed "/online: " cBlue "Keybinder Online List" )
+	;AddChatMessage(cRed "/autohp: " cBlue "HP Updater umschalten" cGray " | | " cRed "/gebiete : " cBlue "Gang-Gebiete auslesen" cGray " | | " cRed "/x: " cBlue "x" )
+	;AddChatMessage(cRed "==========================================" )
+	
+	cmdDialog := "/befehle"
 	return true
 }
 
@@ -875,26 +1414,6 @@ CMDconfig(params := "") {
 	;AddChatMessage(cRed "/laufen: " cBlue "Laufscript" cGray " | | " cRed "/pickspruch: " cBlue "Pickspruch festlegen"  )
 	;AddChatMessage(cRed "/jaspruch: " cBlue "/ja > Spruch" cGray " | | " cRed "/aufspruch: " cBlue "/auf > Spruch"  )
 	AddChatMessage(cRed "==========================================" )
-	return true
-}
-
-CMDonline(params := "") {
-	objWebRequest := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-	
-	response := _callAPI("request=getOnline")
-	
-	getOnline := response.getOnline
-	
-	Loop, Parse, getOnline, `& 
-	{
-		
-		if (A_LoopField != "") {
-			AddChatMessage(KEYBINDER_PREFIX "ID: " GetPlayerID(A_LoopField) " - " A_LoopField)
-		}
-		
-	}
-	
-	; // response wird im format ausgegeben => kensho.nichio&tazsuyo.nichio&
 	return true
 }
 
@@ -953,7 +1472,7 @@ CMDsniper(params := "") {
 	return true
 }
 
-CMDchangelog(params := "") {
+CMDchangelog_old(params := "") {
 	AddChatMessage(cRed "================" cBlue " Changelog " cRed "=================" )
 	AddChatMessage(cRed "/gangspruch: " cBlue "Gang Killspruch setzen" cGray " | | " cRed "/------: " cBlue "-------------------"  )
 	AddChatMessage(cRed "==========================================" )
@@ -1176,7 +1695,7 @@ getSecondWord(string) {
 }
 	
 ; ########################## KEYBINDINGS ##########################
-	F12::
+	*F12::
 	if (KEYBINDER_STATE == 1) {
 		AddChatMessage(KEYBINDER_PREFIXRED KEYBINDER_CLIENTNAME " Keybinder deaktiviert.")
 		GuiControl,, STATE, KeyBinder: AUS
@@ -1193,33 +1712,30 @@ getSecondWord(string) {
 	global W := "{FFFFFF}"
 	
 	F9::
+	msg ("lol")
+	return
+	
+	*F20::
+	unblockDialog()
 	if (isKeybinderAvailable()) {
 		;msg( getDialogID() )
 		;msg( setActiveWeaponSlot() )
 		
-		AddChatMessage(KEYBINDER_PREFIX "=======FRAKS=======")
+		AddChatMessage(KEYBINDER_PREFIX "=======SPECS=======")
 		maxid := getMaxPlayerID() + 1
-			
-			for i, element in fraktionen {
 				
-				loop %maxid% {
-				c_id := A_Index - 1
-				
-				; loop for each player
-				target_player_skinid := getSkinID(c_id)
+		loop %maxid% {
+			c_id := A_Index - 1
 			
-				;msg(element["NAME"])
-				for j, skins in element["SKINS"] {
-						
-					if (element["SKINS"][j] == target_player_skinid) {
-						AddChatMessage(KEYBINDER_PREFIX element["COLOR2"] element["NAME"] cWhite ": " getPlayerName(c_id) " | " c_id)
-					}
-				
-					;msg(element["SKINS"][j])
-				}
+			; loop for each player
+			target_player_skinid := getSkinID(c_id)
+			target_player_distance := getDistance(getPlayerPos(), getPlayerPosition(c_id))
 			
-			}
+			; wenn out of render distance dann pos == 0
 			
+			msg("ID: " c_id " | Skin: " target_player_skinid " | Distance: " target_player_distance " | Pos: " getPlayerPosition(c_id)[1])
+			
+		
 		}
 		
 		AddChatMessage(KEYBINDER_PREFIX "====================")
@@ -1227,50 +1743,58 @@ getSecondWord(string) {
 	}
 	return
 	
-	
 	F7::
+		;msg(getPickupModelsInDistance(2))
+		
+	return
+	
+	*F7::
 		;    printWurstObj()
 		;	 bumpVehicleX()
 		;	 bumpVehicleY()
-		if (!updateGangzones())
-			return
-
-		total := 0
-		arr := [0, 0, 0, 0, 0, 0, 0, 0]
-		for i, fGangZ in oGangzones {
-			for j, k in fraktionen {
-				if (fGangZ.COLOR1 == k.GANGZONE) {
-					arr[j]++
-					break
-				}
-			}
-
-			total := i
-		}
-
-		string := ""
-		for h, m in arr
-			string .= m "," h "`n"
-
-		Sort string, NR
-		AddChatMessage(KEYBINDER_PREFIX "=======GEBIETE=======")
-		Loop, Parse, string, `n
-		{
-			if (A_LoopField == "")
-				continue
-
-			var := StrSplit(A_LoopField, ",")
-			AddChatMessage(KEYBINDER_PREFIX  "" fraktionen[var[2]].NAME ": {FFFFFF}[" var[1] "/" total "]", fraktionen[var[2]].COLOR)
-			Sleep, 20
-		}
-
-		AddChatMessage(KEYBINDER_PREFIX "=====================", COLOR_GREEN)
+		
 
 	return
-	
+
+#if WinActive("GTA:SA:MP")
+Enter::
+	if (!isKeybinderAvailable(true)) {
+			SendInput, {enter}
+			return
+		}
+		
+		if (IsDialogOpen()) {
+			SendInput, {enter}
+		}
+		
+		clip := ClipboardAll
+		Clipboard := ""
+		SendInput, {Right}a{BackSpace}^a^c ;^A{Backspace}
+		ClipWait, 0.1
+		chatText := Clipboard
+		Clipboard := clip
+
+		if (chatText == -1 || chatText == "")
+			return
+
+		if (SubStr(chatText, 1, 1) == "/") {
+			if (!OnPlayerCommand(chatText)) {
+				SendInput, {enter}
+			} else {
+				if (InStr("/q/quit/save/rs/interior/fpslimit/pagesize/headmove/timestamp/dl/nametagstatus/mem/audiomsg/fontsize/ctd/rcon/idktest/", chatText)) {
+					SendInput, {Enter}
+				} else {
+					SendInput, {Backspace}{Escape}
+				}
+			}
+		} else {
+			SendInput, {enter}
+		}
+return
 	
 #if isChatOpen() == 0 && IsDialogOpen() == 0 && IsInMenu() == 0 && isKeybinderAvailable(true)
-	F2::	
+	
+	*F2::	
 	if (isKeybinderAvailable(true)) {
 		SendChat("/carkey")
 		;Sleep, 100
@@ -1283,13 +1807,13 @@ getSecondWord(string) {
 	}
 	return
 
-	F3::
+	*F3::
 	if (isKeybinderAvailable(true) ) {
 		SendChat("/carlock")
 	}
 	return
 	
-	F4::
+	*F4::
 	if (isKeybinderAvailable(true) ) {
 		SendChat("/motor")
 		SendChat("/licht")
@@ -1303,7 +1827,7 @@ getSecondWord(string) {
 	}
 	return
 	
-	X::
+	*X::
 	if (isKeybinderAvailable(true) ) {
 		if(HANDY_STATE == 1) {
 			SendChat("/handystatus aus")
@@ -1315,51 +1839,143 @@ getSecondWord(string) {
 	}
 	return
 	
-	#::
-	if (isKeybinderAvailable(true) ) {
-		AddChatMessage(cRed "==============" cBlue " KeyBinder Guide " cRed "==============" )
-		AddChatMessage(cRed "/befehle: " cBlue "Befehle nachsehen" cGray " | | " cRed "/hotkeys: " cBlue "Hotkeys nachsehen" )
-		AddChatMessage(cRed "/changelog: " cBlue "Changelog nachsehen" cGray " | | " cRed "/config: " cBlue "Konfiguriere den Keybinder" )
-		AddChatMessage(cRed "==========================================" )
+	*^C::
+	if (isKeybinderAvailable()) {
+		;msg( getDialogID() )
+		;msg( setActiveWeaponSlot() )
+		msg(KEYBINDER_PREFIX cGreen "Es wird nach Spielern in der Nähe gesucht...")
+		
+		Sleep, 20
+		maxid := getMaxPlayerID() + 1
+		player_count := 0
+		player_array := []
+			
+				
+		loop %maxid% {
+			c_id := A_Index - 1
+			
+			target_player_skinid := getSkinID(c_id)
+			target_player_position := getPlayerPosition(c_id)
+			target_player_distance := Round(getDistance(target_player_position, getPlayerPos()))
+			target_player_zone := calculateZone(target_player_position[1], target_player_position[2], target_player_position[3])
+				
+			if (target_player_skinid != -1) {
+				player_count++
+				player_array[player_count] := Object("DISTANCE", target_player_distance, "LOCATION", target_player_zone, "ID", c_id)
+			}
+			
+		
+		}
+			
+		if (player_count == 0) {
+			msg(KEYBINDER_PREFIX cRed "Es wurden keine Spieler in der Nähe gefunden.")
+			return
+		}
+		
+		for index, element in player_array {
+			msg(KEYBINDER_PREFIX cWhite getPlayerName(player_array[index]["ID"]) cLime " " player_array[index]["DISTANCE"] "m " cBlue player_array[index]["LOCATION"])
+			Sleep, 20
+		}
+		
+		
 	}
 	return
 	
-	+::
+	*C::
+	if (isKeybinderAvailable()) {
+		;msg( getDialogID() )
+		;msg( setActiveWeaponSlot() )
+		msg(KEYBINDER_PREFIX cGreen "Es wird nach Fraktions-Spielern in der Nähe gesucht...")
+		
+		Sleep, 20
+		maxid := getMaxPlayerID() + 1
+		player_count := 0
+		player_array := []
+			
+			for i, element in fraktionen {
+				
+				loop %maxid% {
+				c_id := A_Index - 1
+				
+				target_player_skinid := getSkinID(c_id)
+			
+				for j, skins in element["SKINS"] {
+						
+					if (element["SKINS"][j] == target_player_skinid) {
+						player_count++
+						player_array[player_count] := Object("COLOR2", element["COLOR2"], "FRAK", element["NAME"], "ID", c_id)
+					}
+				
+				}
+			
+			}
+			
+		}
+		if (player_count == 0) {
+			msg(KEYBINDER_PREFIX cRed "Es wurden keine Fraktions-Spieler in der Nähe gefunden.")
+			return
+		}
+		
+		for index, element in player_array {
+			msg(KEYBINDER_PREFIX player_array[index]["COLOR2"] player_array[index]["FRAK"] cWhite " " getPlayerName(player_array[index]["ID"]) " - ID: " player_array[index]["ID"])
+			Sleep, 20
+		}
+		
+		
+	}
+	return
+	
+	*#::
+	if (isKeybinderAvailable(true) ) {
+		;AddChatMessage(cRed "==============" cBlue " KeyBinder Guide " cRed "==============" )
+		;AddChatMessage(cRed "/befehle: " cBlue "Befehle nachsehen" cGray " | | " cRed "/hotkeys: " cBlue "Hotkeys nachsehen" )
+		;AddChatMessage(cRed "/changelog: " cBlue "Changelog nachsehen" cGray " | | " cRed "/config: " cBlue "Konfiguriere den Keybinder" )
+		;AddChatMessage(cRed "==========================================" )
+		
+		dialogText := ""
+		dialogText := dialogText cLime "/befehle" cWhite " - Befehle nachsehen" "`n"
+		dialogText := dialogText cLime "/hotkeys" cWhite " - Hotkeys nachsehen" "`n"
+		dialogText := dialogText cLime "/changelog" cWhite " - Changelog nachsehen" "`n"
+		dialogText := dialogText cLime "/config" cWhite " - Konfiguration nachsehen" "`n"
+		showDialog(4, cRed "Nichio Keybinder Guide", dialogText, "Done")
+	}
+	return
+	
+	*+::
 	if (isKeybinderAvailable(true)) {
 		v := KEYBINDER_VERSION
 		IniRead, k, %SettingsPath%, InGame, Kills
 		IniRead, wt, %SettingsPath%, InGame, Waffendealerpakete
 		IniRead, dr, %SettingsPath%, InGame, Drogendealerpakete
 		IniRead, ks, %SettingsPath%, InGame, Killspruch
+		IniRead, gs, %SettingsPath%, InGame, Gangspruch
 		IniRead, ps, %SettingsPath%, InGame, Pickspruch
 		IniRead, js, %SettingsPath%, InGame, JaSpruch
 		IniRead, as, %SettingsPath%, InGame, NeinSpruch
-		AddChatMessage(KEYBINDER_PREFIX "Version: " v)
-		AddChatMessage(KEYBINDER_PREFIX "Waffenpakete: " wt)
-		AddChatMessage(KEYBINDER_PREFIX "Drogenpakete: " dr)
-		AddChatMessage(KEYBINDER_PREFIX "Killspruch: " ks)
-		AddChatMessage(KEYBINDER_PREFIX "Pickspruch: " ps)
-		AddChatMessage(KEYBINDER_PREFIX "/Ja Spruch: " js)
-		AddChatMessage(KEYBINDER_PREFIX "/auf Spruch: " as)
+		;AddChatMessage(KEYBINDER_PREFIX "Version: " v)
+		;AddChatMessage(KEYBINDER_PREFIX "Waffenpakete: " wt)
+		;AddChatMessage(KEYBINDER_PREFIX "Drogenpakete: " dr)
+		;AddChatMessage(KEYBINDER_PREFIX "Killspruch: " ks)
+		;AddChatMessage(KEYBINDER_PREFIX "Pickspruch: " ps)
+		;AddChatMessage(KEYBINDER_PREFIX "/Ja Spruch: " js)
+		;AddChatMessage(KEYBINDER_PREFIX "/auf Spruch: " as)
+		
+		dialogText := ""
+		dialogText := dialogText cLime "Version" cWhite " - " v "`n"
+		dialogText := dialogText cLime "Waffenpakete" cWhite " - " wt "`n"
+		dialogText := dialogText cLime "Drogenpakete" cWhite " - " dr "`n"
+		dialogText := dialogText " " "`n"
+		dialogText := dialogText cLime "Killspruch" cWhite " - " ks "`n"
+		dialogText := dialogText cLime "Gangspruch" cWhite " - " gs "`n"
+		dialogText := dialogText cLime "Pickspruch" cWhite " - " ps "`n"
+		dialogText := dialogText cLime "/Ja Spruch" cWhite " - " js "`n"
+		dialogText := dialogText cLime "/Auf Spruch" cWhite " - " as "`n"
+		showDialog(4, cRed "Nichio Keybinder Config", dialogText, "Done")
+		
 	}
 	return
 	
-	NumPad9::
-	if (isKeybinderAvailable()) {
-		;blockDialog()
-		;SendChat("/Waffenlager")
-		;sendDialogResponseWait(1230, true, 1)
-		;sendDialogResponseWait(1233, true, 5)
-		;sendDialogResponseWait(1233, true, 4)
-		;sendDialogResponseWait(1233, true, 1)
-		;sendDialogResponseWait(1233, false, 1)
-		;sendDialogResponseWait(1230, false, 1)
-		;closeDialog()
-		;msg("Erfolgreich M4, Shotgun & Weste gebaut")
-	}
-	return
-	
-	Y::
+	*Y::
 	if (isKeybinderAvailable(false) ) {
 		
 		lbl := getNearestLabel()
@@ -1393,6 +2009,8 @@ getSecondWord(string) {
 				
 				; schließen
 				closeDialog()
+			} else if (InStr(lbl.TEXT, "Tankstelle")) {
+				SendChat("/tanken")
 			} else {
 				_getCMDbyString(lbl.TEXT)
 			}
@@ -1458,19 +2076,19 @@ getSecondWord(string) {
 #if IsChatOpen() == 0 && IsDialogOpen() == 0 && IsInMenu() == 0 && isKeybinderAvailable()
 ; ########################## Custom Keybinds ##########################
 
-	,::
+	*,::
 	if (isKeybinderAvailable(true)) {
 		SendChat("/nimmdrogen")
 	}	
 	return
 	
-	.::
+	*.::
 	if (isKeybinderAvailable(true)) {
 		SendChat("/nimmspice")
 	}	
 	return
 
-	^K::
+	*^K::
 	if (isKeybinderAvailable(true) ) {
 		if(KEKSBOT_STATE == 0) {
 			AddChatMessage(KEYBINDER_PREFIX "KeksBot aktiviert.")
@@ -1482,17 +2100,23 @@ getSecondWord(string) {
 	}
 	return
 	
-	^R::
+	*^R::
 	if (isKeybinderAvailable(true) ) {
 		SendChat("/frespawn")
 	}
 	return
 
-	^::
+	*^::
 	if (isKeybinderAvailable(true) ) {
-		IniRead, p_spruch, %SettingsPath%, InGame, Pickspruch
-		SendChat("/pickwaffe")
-		SendChat(p_spruch)
+		
+		position := getPlayerPos()
+		params := "Hilfe [LOCATION]: " position[1] "," position[2] "," position[3]
+		
+		msg := "" UrlEncode(params) ""
+		
+		response_str := "request=sendMSG&msg=" msg
+		_callAPI(response_str)
+		
 	}
 	return
 	
@@ -1646,6 +2270,7 @@ getSecondWord(string) {
 					
 					if (veris >= 5000) {
 						LOGGED_IN := _validate()
+						login_msg_sent := false
 						veris := 0
 					}
 					veris := veris + 1
@@ -1743,7 +2368,7 @@ getSecondWord(string) {
 				LOGGED_IN = 1
 				GuiControl ,, LoginMsg, Successfully Logged-In
 				Sleep, 500
-				GuiControl ,, LoginMsg, Logged in as %EmailField%
+				GuiControl ,, LoginMsg, Logged in as: %EmailField%
 			} else {
 				login_msg_sent := false
 				LOGGED_IN = 0
@@ -1801,13 +2426,18 @@ getSecondWord(string) {
 	
 	_online() {
 		; users db
+		; msg(getServerName())
+		
 		if (LOGGED_IN == 1) {
 			
 			IniRead, cur_email, %SettingsPATH%, Keybinder, Email
 			pname := GetUsername()
-			str = %cur_email%:%A_ComputerName%:%A_UserName%:%pname%
-			
-			_callAPI("query=" str)
+			server_name := getServerName()
+			server_ip := getServerIP()
+			server_port := getServerPort()
+			str := cur_email ":" A_ComputerName ":" A_UserName ":" pname ":" server_ip ":" server_port ":" server_name
+
+			_callAPI("query=" UrlEncode(str))
 
 		}
 	}
@@ -1827,11 +2457,15 @@ getSecondWord(string) {
 	}
 	
 	_getCMDbyString(string) {
-		
+		;msgbox % string
 		Loop, parse, string, `n
 		{
-			;msg(A_Index " " A_LoopField)
+			
 			if (RegExMatch(A_LoopField, "(.*) /(.*)", cmd)) {
+				SendChat( "/" getFirstWord(cmd2) )
+			} 
+			
+			if (RegExMatch(A_LoopField, "(.*)/(.*)" cmd)) {
 				SendChat( "/" getFirstWord(cmd2) )
 			}
 		}
@@ -1849,5 +2483,25 @@ getSecondWord(string) {
 		StringLower, o,o
 		return o
 	}	
+	
+	UrlEncode( String ) { ; 	// credit to: https://www.autohotkey.com/board/topic/35660-url-encoding-function/
+		OldFormat := A_FormatInteger
+		SetFormat, Integer, H
+
+		Loop, Parse, String
+		{
+			if A_LoopField is alnum
+			{
+				Out .= A_LoopField
+				continue
+			}
+			Hex := SubStr( Asc( A_LoopField ), 3 )
+			Out .= "%" . ( StrLen( Hex ) = 1 ? "0" . Hex : Hex )
+		}
+
+		SetFormat, Integer, %OldFormat%
+
+		return Out
+	}
 	
 	
