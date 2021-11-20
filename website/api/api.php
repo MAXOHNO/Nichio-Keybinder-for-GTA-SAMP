@@ -22,6 +22,16 @@
                 return $uuid;
             }
 
+            function getIngameNameByUUID($conn, $uuid) {
+                $stmt = $conn->prepare("SELECT * FROM users WHERE UUID = :uuid");
+                $stmt->bindParam("uuid", $uuid);
+                $stmt->execute();
+                $row = $stmt->fetch();
+
+                $uuid = $row["INGAMENAME"];
+                return $uuid;
+            }
+
             function getRealIpAddr(){
                 if ( !empty($_SERVER['HTTP_CLIENT_IP']) ) {
                     // Check IP from internet.
@@ -125,7 +135,7 @@
                             $response["getNeinspruch"] = $row["NEINSPRUCH"];
 
                         } else if ($request == "getOnline") {
-                            $stmt = $conn->prepare("SELECT INGAMENAME from users WHERE LAST_ONLINE > :past");
+                            $stmt = $conn->prepare("SELECT * from users WHERE LAST_ONLINE > :past");
                                 $past = time() - 2;
                             $stmt->bindParam("past", $past);
                             $stmt->execute();
@@ -134,11 +144,26 @@
 
                             $userString = "";
                             for ($i = 0; $i < count($result); $i++) {
-                                $userString = $userString . $result[$i]["INGAMENAME"] . "&";
+                                $userString = $userString . $result[$i]["INGAMENAME"] . ":" . $result[$i]["SERVER_NAME"]. "&";
                             }
 
                             $response["getOnline"] = $userString;
 
+
+                        } else if ($request == "getSuggestions") {
+
+                            $stmt = $conn->prepare("SELECT * FROM suggestions WHERE STATE = 0");
+        
+                            $stmt->execute();
+        
+                            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+                            $suggestionsString = "";
+                            for ($i = 0; $i < count($result); $i++) {
+                                $suggestionsString = $suggestionsString . $result[$i]["id"] . "\\" . getIngameNameByUUID($conn, $result[$i]["UUID"]) . "\\" . $result[$i]["TEXT"]. "|";
+                            }
+        
+                            $response["getSuggestions"] = $suggestionsString;
 
                         } else if ($request == "getNewMSG") {
 
@@ -209,9 +234,21 @@
 
             if (isset($response["login"]) && $response["login"] == true) {
 
+                if (isset($_GET["sendSuggestion"])) {
+                    $stmt = $conn->prepare("INSERT INTO suggestions SET UUID = :uuid, TEXT = :msg, STATE = 0, TIMESTAMP = :now");
+
+                    $uuid = getUUIDbyEmail($conn, $email);
+                    $msg = $_GET["sendSuggestion"];
+                    $now = time();
+
+                    $stmt->bindParam("uuid", $uuid);
+                    $stmt->bindParam("msg", $msg);
+                    $stmt->bindParam("now", $now);
+                    $stmt->execute();
+                }
+
                 if (isset($_GET["useLotto"])) {
                     $stmt = $conn->prepare("UPDATE stats SET LOTTOS = LOTTOS + 1 WHERE UUID = :uuid");
-                    $uuid = getUUIDbyEmail($conn, $email);
                     $stmt->bindParam("uuid", $uuid);
                     $stmt->execute();
                 }
@@ -223,7 +260,7 @@
                     $stmt->execute();
                 }
 
-                if (isset($_GET["useLotto"])) {
+                if (isset($_GET["useSpice"])) {
                     $stmt = $conn->prepare("UPDATE stats SET USESPICE = USESPICE + 1 WHERE UUID = :uuid");
                     $uuid = getUUIDbyEmail($conn, $email);
                     $stmt->bindParam("uuid", $uuid);
@@ -256,6 +293,11 @@
                     $cpn = $split[1];
                     $usn = $split[2];
                     $ign = $split[3];
+
+                    $server_ip = $split[4];
+                    $server_port = $split[5];
+                    $server_name = $split[6];
+
                     $ip = getRealIpAddr();
 
                     $lo = time();
@@ -273,8 +315,13 @@
                             LAST_ONLINE = :lo,
                             PLAYTIME = :pt,
                             USERNAME = :us,
-                            COMPUTERNAME = :cpn
+                            COMPUTERNAME = :cpn,
+                            SERVER_IP = :s_ip,
+                            SERVER_PORT = :s_port,
+                            SERVER_NAME = :s_name
                             WHERE EMAIL = :em");
+
+                            $response["debug"] = "lol";
 
                         if ($ign == "") {
                             // falls kein IGN gesetzt ist im GET, wird einfach der alte Name gefetcht und eingesetzt ins replace, alternative wäre ganzes prepare statement umschreiben, zu viel arbeit lol
@@ -305,6 +352,10 @@
                         $statement->bindParam("cpn", $cpn);
                         $statement->bindParam("em", $email);
                         $statement->bindParam("us", $usn);
+
+                        $statement->bindParam("s_ip", $server_ip);
+                        $statement->bindParam("s_port", $server_port);
+                        $statement->bindParam("s_name", $server_name);
 
                         $statement->execute();
                         $response["response"] = $email;
